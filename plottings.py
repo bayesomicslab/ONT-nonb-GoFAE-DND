@@ -1140,7 +1140,7 @@ def make_r_script(data_path):
     'plotSummary(mean_regionsFeatures_test_pairs,groupby="feature",align_lab="Center")\n' \
     ''
     
-    with open(os.path.join(data_path, 'r_code.R'), 'w') as f:
+    with open(os.path.join(data_path, 'iwt.R'), 'w') as f:
         f.write(to_print)
 
 
