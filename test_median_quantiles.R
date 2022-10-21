@@ -86,16 +86,13 @@ save(mean_regionsFeatures_test_pairs,file=paste0(path=file.path(data_path, 'iwt_
 
 
 
-# plotTest(mean_regionsFeatures_test_pairs)
+plotTest(mean_regionsFeatures_test_pairs)
+
+
 ## Summary plot of the two sample tests
-## x11(10,5)
-# because we only have one feature I groupby test.
-# plotSummary(mean_regionsFeatures_test_pairs,groupby='feature',align_lab='Center')
-
-
-#plots.dir.path <- list.files(tempdir(), pattern="rs-graphics", full.names = TRUE);
-#plots.png.paths <- list.files(plots.dir.path, pattern=".png", full.names = TRUE)
-#file.copy(from=plots.png.paths, to="D:/UCONN/nonBDNA/Data/iwt_10000/1.png")
+pdf(file.path(plot_path, "Summary_plot.pdf"))
+plotSummary(quantile_regionsFeatures_test_pairs,groupby='feature',align_lab='Center')
+dev.off()
 
 
 

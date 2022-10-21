@@ -3,6 +3,21 @@ Goodness-of-fit contrastive autoencoder for outlier detection of non-B DNA in ON
 
 
 
+## Reads Processing:
+
+#### Albacore Basecalling:
+
+```Albacore
+~$ read_fast5_basecaller.py -f FLO-PRO002 -k SQK-LSK109 --input $path/na12878/fast5/single/ --save_path $path/na12878/fast5/albacore_single/ --output_format fastq,fast5 -t 48 --recursive --config r941_450bps_linear_prom.cfg
+```
+#### Tombo re-squiggle:
+
+```Tombo
+~$ tombo resquiggle $path/workspace/pass/ hg38.fa --dna --overwrite --basecall-group Basecall_1D_001 --include-event-stdev --failed-reads-filename $path/workspace/pass/tombo_failed_reads.txt --processes 48
+```
+
+
+
 
 
 ## Prepare the input:
@@ -24,3 +39,4 @@ Find motif free regions.
 
 ### Step 6:
 Compute translocation signal on the non-overlapping windows.
+
