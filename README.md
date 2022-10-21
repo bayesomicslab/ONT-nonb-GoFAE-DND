@@ -37,7 +37,7 @@ The DNA conformations that we study here are the following:
 ## Prepare the input:
 
 ### Step 1:
-Extract motifs postions from non B DNA DB.
+Extract motifs postions from [non B DNA DB](https://nonb-abcc.ncifcrf.gov/apps/site/default).
 
 ### Step 2: 
 Fix windows of length x around motifs.
