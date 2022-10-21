@@ -1,0 +1,3 @@
+echo `hostname`
+module load tombo
+tombo resquiggle /labs/Aguiar/non_bdna/human/na12878/fast5/albacore_single/workspace/pass/ /labs/Aguiar/non_bdna/genome_reference/hg38.fa --dna --overwrite --basecall-group Basecall_1D_001 --include-event-stdev --failed-reads-filename /labs/Aguiar/non_bdna/human/na12878/fast5/albacore_single/workspace/pass/tombo_failed_reads.txt --processes 48 # --ignore_read_locks

@@ -1,6 +1,16 @@
 # ONT-nonb-GoFAE-COD
 Goodness-of-fit contrastive autoencoder for outlier detection of non-B DNA in ONT sequencing.
 
+**What is non-B DNA?**
+
+Non-canonical (or non-B) DNA are genomic regions where the three-dimensional conformation of
+DNA deviates from the double helical structure. Non-B DNA play an important role in basic cellular
+processes and have been associated with genomic instability, gene regulation, and oncogenesis.
+The non-B structures that we study here are the following:
+
+
+
+
 
 
 ## Reads Processing:
