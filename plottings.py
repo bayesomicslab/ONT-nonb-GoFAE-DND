@@ -885,5 +885,603 @@ def plot_stats_bdna():
 
 
 
-if __name__ == '__main__':
-    plot_depth_histograms_per_chr()
+
+def plot_elems():
+    chrom_list = ['chr1+', 'chr2+', 'chr3+', 'chr4+', 'chr5+', 'chr6+', 'chr7+']
+    import matplotlib.pyplot as plt
+    main_path = 'D:\\UCONN\\nonBDNA\\IWT\\IWT_paper\\Signals_np'
+    
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Control']
+    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z DNA', 'Control']
+    features = ['Translocation', 'Current']
+    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
+    x = range(0, 100)
+    
+    for chrom in chrom_list:
+        
+        for quant in quantiles:
+            fig, axis = plt.subplots(2, 1, figsize=(13, 10))
+            for i in range(2):
+                feature = features[i]
+                for elem_id in range(len(elements)):
+                    elem = elements[elem_id]
+                    elem_name = elements_name[elem_id]
+                    path = os.path.join(main_path, chrom, feature + '_' + elem + '.npy')
+                    signal = pd.read_csv(path, sep=' ', header=None)
+                    signal_quantile = np.quantile(signal, quant, axis=0)
+                    # signal = np.load(path, allow_pickle=True)
+                    axis[i].plot(x, signal_quantile, label=elem_name)  # Plot some data on the axes.
+                axis[i].set_title(chrom + ' - ' + feature + ' - ' + 'Quantile:' + str(quant), fontsize=20)
+                axis[i].set_xlabel('Positions in windows', fontsize=15)  # Add an x-label to the axes.
+                axis[i].set_ylabel('Value', fontsize=15)  # Add a y-label to the axes.
+                axis[i].legend()  # Add a legend.
+            plt.tight_layout()
+            plt.savefig(os.path.join(main_path, chrom + '_quantile_' + str(quant) + '.png'))
+
+
+def plot_non_b_types():
+    import matplotlib.pyplot as plt
+    main_path = '/labs/Aguiar/non_bdna/annotations/windows/Signals_translocation/'
+    plot_path = '/labs/Aguiar/non_bdna/paper/plots'
+    chrom_list = ['chr' + str(i) for i in list(range(1, 23)) + ['X', 'Y']]
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Control']
+    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z DNA', 'Control']
+    features = ['Translocation']
+    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
+    x = range(0, 100)
+    
+    elems_pd_list = {feature: [pd.DataFrame() for elem_id in range(len(elements))] for feature in features}
+    
+    for elem_id in range(len(elements)):
+        elem = elements[elem_id]
+        for i in range(len(features)):
+            feature = features[i]
+            for chrom in chrom_list:
+                path = os.path.join(main_path, chrom, feature + '_' + elem + '.npy')
+                signal = pd.read_csv(path, sep=' ', header=None)
+                elems_pd_list[feature][elem_id] = elems_pd_list[feature][elem_id].append(signal).reset_index(drop=True)
+    
+    for quant in quantiles:
+        fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+        for elem_id in range(len(elements)):
+            elem_name = elements_name[elem_id]
+            for i in range(len(features)):
+                feature = features[i]
+                signal = elems_pd_list[feature][elem_id]
+                signal_quantile = np.quantile(signal, quant, axis=0)
+                ax.plot(x, signal_quantile, label=elem_name)  # Plot some data on the axes.
+                ax.set_title(feature + ' - ' + 'Quantile:' + str(quant), fontsize=20)
+                ax.set_xlabel('Positions in windows', fontsize=15)  # Add an x-label to the axes.
+                ax.set_ylabel('Value', fontsize=15)  # Add a y-label to the axes.
+                ax.legend()
+        plt.tight_layout()
+        
+        plt.savefig(os.path.join(plot_path, 'non_b_types_quantile_' + str(quant) + '.png'))
+
+
+def plot_non_b_types_direction_quantiles():
+    import matplotlib.pyplot as plt
+    path = '/labs/Aguiar/non_bdna/annotations/windows/agg_transloc_signals/signals_df/translocation_df.csv'
+    df = pd.read_csv(path, index_col=0)
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Control']
+    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z DNA', 'Control']
+    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
+    x = range(0, 100)
+    direction = ['same', 'opposite']
+    plot_path = '/labs/Aguiar/non_bdna/paper/plots'
+    cols = ['val_'+str(i) for i in range(100)]
+    for elem_id in range(len(elements)):
+        elem_name = elements_name[elem_id]
+        elem = elements[elem_id]
+        for dir in direction:
+            df_elem_dir = df[(df['label'] == elem_name) & (df['direction'] == dir)].reset_index(drop=True)
+            signal = df_elem_dir.loc[:, cols].to_numpy()
+            
+            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            for quant in quantiles:
+                signal_quantile = np.quantile(signal, quant, axis=0)
+                ax.plot(x, signal_quantile, label='Quantile ' + str(quant))  # Plot some data on the axes.
+            ax.set_xlabel('Positions in windows', fontsize=15)  # Add an x-label to the axes.
+            ax.set_ylabel('Value', fontsize=15)  # Add a y-label to the axes.
+            ax.legend()
+            ax.set_title(elem_name + ' - ' + dir + ' - ', fontsize=20)
+            plt.tight_layout()
+            plt.savefig(os.path.join(plot_path, elem + '_' + dir + '.png'))
+
+
+def plot_non_b_types_direction_quantiles_vs_control():
+    import matplotlib.pyplot as plt
+    path = '/labs/Aguiar/non_bdna/annotations/windows/agg_transloc_signals/signals_df/translocation_df.csv'
+    df = pd.read_csv(path, index_col=0)
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z DNA']
+    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple' ]
+    x = range(0, 100)
+    direction = ['same', 'opposite']
+    plot_path = '/labs/Aguiar/non_bdna/paper/plots'
+    cols = ['val_'+str(i) for i in range(100)]
+    
+    df_control_dict = {dir: df[(df['label'] == 'Control') & (df['direction'] == dir)].reset_index(drop=True) for dir in direction}
+    
+    for elem_id in range(len(elements)):
+        elem_name = elements_name[elem_id]
+        elem = elements[elem_id]
+        for dir in direction:
+            df_elem_dir = df[(df['label'] == elem_name) & (df['direction'] == dir)].reset_index(drop=True)
+            df_control = df_control_dict[dir]
+            signal = df_elem_dir.loc[:, cols].to_numpy()
+            control_signal = df_control.loc[:, cols].to_numpy()
+            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            for quant_id in range(len(quantiles)):
+                quant = quantiles[quant_id]
+                color = colors[quant_id]
+                signal_quantile = np.quantile(signal, quant, axis=0)
+                control_signal_quantile = np.quantile(control_signal, quant, axis=0)
+                ax.plot(x, signal_quantile, color=color, label=elem_name + ' - Quantile ' + str(quant))
+                ax.plot(x, control_signal_quantile, color=color, linestyle='--', label='Control - Quantile ' + str(quant))
+            ax.set_xlabel('Positions in windows', fontsize=15)  # Add an x-label to the axes.
+            ax.set_ylabel('Value', fontsize=15)  # Add a y-label to the axes.
+            ax.legend()
+            ax.set_title(elem_name + ' - ' + dir + ' - ', fontsize=20)
+            plt.tight_layout()
+            plt.savefig(os.path.join(plot_path, elem + '_Control_' + dir + '.png'))
+
+
+def plot_non_b_types_direction_quantiles_vs_control_new_data():
+    import matplotlib.pyplot as plt
+    # main_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5_mean/original/outliers/centered_windows'
+    main_path = 'Data/windows/centered_windows'
+    # main_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows/original/complete_centered_windows'
+    # control_same_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5_mean/original/bdna/Control_Same_100_non_overlapping.npy'
+    # control_same_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows/original/Control_Same_100_non_overlapping.npy'
+    control_same_path = 'Data/windows/Control_Same_100_non_overlapping.npy'
+    
+    # control_opposite_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5_mean/original/bdna/Control_Opposite_100_non_overlapping.npy'
+    # control_opposite_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows/original/Control_Opposite_100_non_overlapping.npy'
+    control_opposite_path = 'Data/windows/Control_Opposite_100_non_overlapping.npy'
+    
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    elements_path = {nonb: os.path.join(main_path, nonb + '_centered.csv') for nonb in elements}
+    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z DNA']
+    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple' ]
+    x = range(0, 100)
+    direction = ['same', 'opposite']
+    direction_cols = {'same': ['forward_'+str(i) for i in range(100)], 'opposite': ['reverse_'+str(i) for i in range(100)]}
+    control_signals = {'same': np.load(control_same_path), 'opposite': np.load(control_opposite_path)}
+    direction_names = {'same': 'Forward', 'opposite': 'Reverse'}
+    # plot_path = '/labs/Aguiar/non_bdna/paper/plots/req5_mean'
+    plot_path = 'Figures/req5_mean'
+    
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    for elem_id in range(len(elements)):
+        elem_name = elements_name[elem_id]
+        elem = elements[elem_id]
+        df = pd.read_csv(elements_path[elem], index_col=0)
+        for dir in direction:
+            cols = direction_cols[dir]
+            signal = df.loc[:, cols].to_numpy()
+            control_signal = control_signals[dir]
+            fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+            for quant_id in range(len(quantiles)):
+                quant = quantiles[quant_id]
+                color = colors[quant_id]
+                signal_quantile = np.quantile(signal, quant, axis=0)
+                control_signal_quantile = np.quantile(control_signal, quant, axis=0)
+                ax.plot(x, signal_quantile, color=color, label=str(quant), linewidth=4)
+                ax.plot(x, control_signal_quantile, color=color, linestyle='--', linewidth=3)
+            # max_val = np.max(np.quantile(signal, 0.95, axis=0))
+            ax.set_xlabel('Position in Window', fontsize=27)
+            ax.set_ylabel('Translocation Time', fontsize=27)
+            # leg = plt.legend(loc=(1.03, 0.55), title="Quantile", prop={'size': 14},
+            #                  title_fontsize=15)
+            # ax.add_artist(leg)
+            # h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
+            # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
+            #            title="Structure", prop={'size': 14}, title_fontsize=15)
+            plt.setp(ax.get_xticklabels(), Fontsize=22)
+            plt.setp(ax.get_yticklabels(), Fontsize=22)
+            # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
+            # ax.set_ylim(top=max_val+0.00053)
+            ax.set_title(elem_name + ' ' + direction_names[dir], fontsize=20)
+            plt.tight_layout()
+            # plt.show()
+            plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dir] + '.png'))
+
+
+def make_r_script(data_path):
+    plot_path = os.path.join(data_path, 'plots')
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    rdata_path = os.path.join(data_path, 'rdata')
+    if not os.path.exists(rdata_path):
+        os.mkdir(rdata_path)
+    
+    regions_path = os.path.join(rdata_path, 'translocation_regions.RData')
+    quantile_model_path = os.path.join(rdata_path, 'iwt_results_1000_quantile_pairs.RData')
+    median_model_path = os.path.join(rdata_path, 'iwt_results_3000_median_pairs.RData')
+    to_print = 'if (!require("BiocManager", quietly = TRUE))\n' \
+               '    install.packages("BiocManager")\n' \
+               'BiocManager::install("IWTomics")\n' \
+               'library(IWTomics)\n' \
+               'data_path <- '+ data_path +'\n' \
+                                           '\n' \
+                                           '# make data:\n' \
+                                           'datasets=read.table(file.path(' + data_path + ',"datasets.txt"), sep="\t",header=TRUE,stringsAsFactors=FALSE)\n' \
+                                                                                          'features_datasetsTable=read.table(file.path(' + data_path + ',"features_datasetsTable.txt"), sep="\t",header=TRUE,stringsAsFactors=FALSE)\n' \
+                                                                                                                                                       'regionsFeatures=IWTomics::IWTomicsData(datasets$RegionFile,features_datasetsTable[,3:10],"center", datasets$id,datasets$name, features_datasetsTable$id,features_datasetsTable$name, path=file.path(' + data_path + ',"files"))\n' \
+                                                                                                                                                                                                                                                                                                                                                                            'save(regionsFeatures,file=paste0(' + regions_path + '))\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                 '\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                 '# Quantile test:\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                 'quantile_regionsFeatures_test_pairs=IWTomicsTest(regionsFeatures,id_region1=c("A_Phased_Repeat", "G_Quadruplex_Motif", "Inverted_Repeat", "Mirror_Repeat", "Direct_Repeat", "Short_Tandem_Repeat","Z_DNA_Motif"), id_region2=c("Control", "Control", "Control", "Control", "Control", "Control", "Control"), statistics="quantile",probs=c(0.05,0.25,0.5,0.75,0.95),B=1000)\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                 'save(quantile_regionsFeatures_test_pairs,file=paste0(' + quantile_model_path +'))\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                '\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                '# Quantile test:\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                'mean_regionsFeatures_test_pairs=IWTomicsTest(regionsFeatures,id_region1=c("A_Phased_Repeat", "G_Quadruplex_Motif", "Inverted_Repeat","Mirror_Repeat", "Direct_Repeat", "Short_Tandem_Repeat", "Z_DNA_Motif"), id_region2=c("Control", "Control", "Control", "Control", "Control", "Control", "Control"), statistics="median",B=1000)\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                'save(mean_regionsFeatures_test_pairs,file=paste0(' + median_model_path + '))\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          '\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          '# Adjusted p-value for median test:\n' \
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          'adjusted_pval(mean_regionsFeatures_test_pairs)\n'
+    '\n' \
+    '# Plots of median test:\n' \
+    'plotTest(mean_regionsFeatures_test_pairs)\n' \
+    'plotSummary(mean_regionsFeatures_test_pairs,groupby="feature",align_lab="Center")\n' \
+    ''
+    
+    with open(os.path.join(data_path, 'r_code.R'), 'w') as f:
+        f.write(to_print)
+
+
+def plot_aggregated_sim_data():
+    import matplotlib.pyplot as plt
+    plot_path = 'Data/exponential'
+    path = 'Data/nonb_centered_exponential_sims'
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    # cols = ['id', 'chr', 'strand', 'start', 'end', 'label', 'motif_proportion'] + \
+    #        ['forward_'+str(i) for i in range(100)] + \
+    #        ['reverse_' + str(i) for i in range(100)] + \
+    #        ['mask_' + str(i) for i in range(100)]
+    
+    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple' ]
+    x = range(0, 100)
+    direction = ['same', 'opposite']
+    direction_cols = {'same': ['forward_'+str(i) for i in range(100)], 'opposite': ['reverse_'+str(i) for i in range(100)]}
+    direction_names = {'same': 'Forward', 'opposite': 'Reverse'}
+    
+    for elem in elements:
+        this_path = os.path.join(path, elem + '_centered.csv')
+        df = pd.read_csv(this_path, index_col=0)
+        for dir in direction:
+            cols = direction_cols[dir]
+            signal = df.loc[:, cols].to_numpy()
+            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            for quant_id in range(len(quantiles)):
+                quant = quantiles[quant_id]
+                color = colors[quant_id]
+                signal_quantile = np.quantile(signal, quant, axis=0)
+                # control_signal_quantile = np.quantile(control_signal, quant, axis=0)
+                ax.plot(x, signal_quantile, color=color, label=str(quant), linewidth=5)
+                # ax.plot(x, control_signal_quantile, color=color, linestyle='--', linewidth=4)
+            # max_val = np.max(np.quantile(signal, 0.95, axis=0))
+            ax.set_xlabel('Position in Window', fontsize=18)
+            ax.set_ylabel('Translocation Time', fontsize=18)
+            leg = plt.legend(loc=(1.03, 0.5), title="Quantile", prop={'size': 14},
+                             title_fontsize=15)
+            ax.add_artist(leg)
+            h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
+            plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
+                       title="Structure", prop={'size': 14}, title_fontsize=15)
+            plt.setp(ax.get_xticklabels(), Fontsize=13)
+            plt.setp(ax.get_yticklabels(), Fontsize=13)
+            # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
+            # ax.set_ylim(top=max_val+0.00053)
+            ax.set_title(elem + ' ' + direction_names[dir], fontsize=20)
+            plt.tight_layout()
+            plt.show()
+            plt.savefig(os.path.join(plot_path, elem + direction_names[dir] + '.png'))
+
+
+def plot_experimental_one_method():
+    import matplotlib.pyplot as plt
+    main_path = 'Data/methods_results/IF/IF_final_results.csv'
+    results_df = pd.read_csv(main_path, index_col=0)
+    upper_tail_results = results_df[results_df['tail'] == 'upper'].reset_index(drop=True)
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    elements_name = ['A Phased Repeat', 'G-Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z-DNA']
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink']
+    
+    # ['tab:brown', 'tab:gray', 'tab:olive', 'tab:cyan']
+    
+    plot_path = 'Data/methods_results/IF/'
+    
+    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+    for elem_id in range(len(elements)):
+        elem_name = elements_name[elem_id]
+        elem = elements[elem_id]
+        df = upper_tail_results[upper_tail_results['label'] == elem].reset_index(drop=True)
+        tuples = list(zip(df.alpha, df.potential_nonb_counts))
+        fdrs = [i[0] for i in tuples]
+        n_nonb = [i[1] for i in tuples]
+        color = colors[elem_id]
+        ax.plot(fdrs, n_nonb, color=color, linewidth=3, label=elem_name)
+    ax.set_xlabel('FDR', fontsize=27)
+    ax.set_ylabel('Non-B DNA Count', fontsize=27)
+    leg = plt.legend(loc=(0.03, 0.55), title='Non-B Structures', prop={'size': 16},
+                     title_fontsize=18)
+    ax.add_artist(leg)
+    # h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
+    # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
+    #            title="Structure", prop={'size': 14}, title_fontsize=15)
+    plt.setp(ax.get_xticklabels(), Fontsize=22)
+    plt.setp(ax.get_yticklabels(), Fontsize=22)
+    # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
+    # ax.set_ylim(top=max_val+0.00053)
+    # ax.set_title(elem_name + ' ' + direction_names[dir], fontsize=20)
+    # plt.legend()
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(os.path.join(plot_path, 'IF.png'))
+
+
+def aggregate_results_exp():
+    main_path = 'D:/UCONN/nonBDNA/Data/methods_results'
+    exp_results_path = os.path.join(main_path, 'exp')
+    # exp_results = os.listdir(exp_results_path)
+    
+    IF_exp_path = os.path.join(exp_results_path, 'IF_50')
+    final_if_path = [os.path.join(IF_exp_path, name) for name in os.listdir(IF_exp_path) if 'final_results.csv' in name][0]
+    if_results = pd.read_csv(final_if_path, index_col=0)
+    if_results['method'] = 'Isolation Forest'
+    ################################################################
+    SVM_path = os.path.join(exp_results_path, 'SVM_50')
+    svm_files = [os.path.join(SVM_path, name) for name in os.listdir(SVM_path) if 'csv' in name]
+    final_svm = pd.DataFrame(columns=['method', 'label', 'alpha', 'tail', 'potential_nonb_counts'])
+    for sfile in svm_files:
+        df = pd.read_csv(sfile, index_col=0)
+        final_svm = final_svm.append(df).reset_index(drop=True)
+    final_svm['method'] = 'One Class SVM'
+    
+    ##############################################################################
+    gofae_path = os.path.join(exp_results_path, 'GoFAE')
+    gofae_path_file = os.path.join(gofae_path, os.listdir(gofae_path)[0])
+    gofae_df = pd.read_csv(gofae_path_file, index_col=0)
+    gofae_df = gofae_df.drop(['MD_rec'], axis=1)
+    gofae_df['method'] = 'GoFAE-COD'
+    ##################################################################################
+    
+    lof_path = os.path.join(exp_results_path, 'LOF_50')
+    lof_files = [os.path.join(lof_path, name) for name in os.listdir(lof_path) if '_final_results.csv' in name]
+    final_lof = pd.DataFrame(columns=['method', 'label', 'alpha', 'tail', 'potential_nonb_counts'])
+    for lfile in lof_files:
+        df = pd.read_csv(lfile, index_col=0)
+        final_lof = final_lof.append(df).reset_index(drop=True)
+    final_lof['method'] = 'LOF'
+    ###################################################################################
+    # vanilla 128
+    valilabs128_path = os.path.join(exp_results_path, 'vanilla_bs128', 'saved_model_bs128')
+    valilabs128 = [os.path.join(valilabs128_path,name) for name in os.listdir(valilabs128_path) if 'final_results.csv' in name][0]
+    valilabs128_df = pd.read_csv(valilabs128, index_col=0)
+    valilabs128_df['method'] = 'Outlier AE (128)'
+    
+    
+    ###################################################################################
+    # vanilla 64
+    valilabs64_path = os.path.join(exp_results_path, 'vanilla_bs64', 'saved_model')
+    valilabs64 = [os.path.join(valilabs64_path,name) for name in os.listdir(valilabs64_path) if 'final_results.csv' in name][0]
+    valilabs64_df = pd.read_csv(valilabs64, index_col=0)
+    valilabs64_df['method'] = 'Outlier AE (64)'
+    
+    #######################################################################################
+    # total
+    final_results = pd.DataFrame(columns=['method', 'label', 'alpha', 'tail', 'potential_nonb_counts'])
+    
+    final_results = final_results.append(if_results).reset_index(drop=True)
+    final_results = final_results.append(final_svm).reset_index(drop=True)
+    # final_results = final_results.append(final_lof).reset_index(drop=True)
+    final_results = final_results.append(valilabs64_df).reset_index(drop=True)
+    final_results = final_results.append(valilabs128_df).reset_index(drop=True)
+    
+    final_results = final_results.append(gofae_df).reset_index(drop=True)
+    final_results = final_results.dropna().reset_index(drop=True)
+    results_df = final_results
+    return results_df
+
+
+def plot_experimental_methods_comparison():
+    import matplotlib.pyplot as plt
+    results_df = aggregate_results_exp()
+    plot_path = 'Data/methods_results/plots/'
+    tail_types = ['upper', 'lower']
+    for tail_type in tail_types:
+        upper_tail_results = results_df[results_df['tail'] == tail_type].reset_index(drop=True)
+        # upper_tail_results = upper_tail_results[upper_tail_results['alpha'] <= 0.5].reset_index(drop=True)
+        elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                    'Short_Tandem_Repeat', 'Z_DNA_Motif']
+        elements_name = ['A Phased Repeat', 'G-Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                         'Short Tandem Repeat', 'Z-DNA']
+        colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink']
+        
+        # ['tab:brown', 'tab:gray', 'tab:olive', 'tab:cyan']
+        
+        for elem_id in range(len(elements)):
+            elem_name = elements_name[elem_id]
+            elem = elements[elem_id]
+            df = upper_tail_results[upper_tail_results['label'] == elem].reset_index(drop=True)
+            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            methods = list(df['method'].unique())
+            methods_colors = {'Isolation Forest': 'tab:blue', 'One Class SVM':'tab:orange', 'GoFAE-COD':'tab:green', 'Outlier AE (64)':'tab:red' , 'Outlier AE (128)':'tab:purple'}
+            for idx, method in enumerate(methods):
+                this_df = df[df['method'] == method].reset_index(drop=True)
+                tuples = list(zip(this_df.alpha, this_df.potential_nonb_counts))
+                fdrs = [i[0] for i in tuples]
+                n_nonb = [i[1] for i in tuples]
+                color = methods_colors[method]
+                ax.plot(fdrs, n_nonb, color=color, linewidth=3, marker='o', label=method)
+            
+            ax.set_xlabel('FDR', fontsize=27)
+            ax.set_ylabel('Non-B DNA Count', fontsize=27)
+            # leg = plt.legend(loc=(0.9, 0.03), title='Method', prop={'size': 16}, title_fontsize=18)
+            # ax.add_artist(leg)
+            # h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
+            # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
+            #            title="Structure", prop={'size': 14}, title_fontsize=15)
+            plt.setp(ax.get_xticklabels(), Fontsize=22)
+            plt.setp(ax.get_yticklabels(), Fontsize=22)
+            # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
+            # ax.set_ylim(top=max_val+0.00053)
+            ax.set_title(elem_name + ', '+ tail_type,fontsize=20)
+            # plt.legend()
+            plt.tight_layout()
+            # plt.show()
+            plt.savefig(os.path.join(plot_path, 'exp_' + elem + '_' + tail_type + '.png'))
+
+
+def aggregate_results_sim():
+    main_path = 'D:/UCONN/nonBDNA/Data/methods_results'
+    exp_results_path = os.path.join(main_path, 'sim')
+    # exp_results = os.listdir(exp_results_path)
+    sel_cols = ['accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr', 'data', 'label', 'method']
+    
+    IF_exp_path = os.path.join(exp_results_path, 'IF_sim')
+    final_if_path = [os.path.join(IF_exp_path, name) for name in os.listdir(IF_exp_path) if 'final_results' in name][0]
+    if_results = pd.read_csv(final_if_path, index_col=0)
+    if_results['method'] = 'Isolation Forest'
+    if_results = if_results[sel_cols]
+    ################################################################
+    SVM_path = os.path.join(exp_results_path, 'SVM_sim')
+    svm_files = [os.path.join(SVM_path, name) for name in os.listdir(SVM_path) if 'csv' in name]
+    
+    measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
+    final_svm = pd.DataFrame(columns=measures + ['data', 'kernel', 'label', 'method'])
+    
+    
+    for sfile in svm_files:
+        df = pd.read_csv(sfile, index_col=0)
+        final_svm = final_svm.append(df).reset_index(drop=True)
+    final_svm['method'] = 'One Class SVM'
+    final_svm = final_svm[sel_cols]
+    
+    ##############################################################################
+    gofae_path = os.path.join(exp_results_path, 'GoFAE')
+    gofae_path_file = os.path.join(gofae_path, os.listdir(gofae_path)[0])
+    gofae_df = pd.read_csv(gofae_path_file, index_col=0)
+    gofae_df = gofae_df.drop(['MD_rec'], axis=1)
+    gofae_df['method'] = 'GoFAE-COD'
+    
+    ##################################################################################
+    
+    lof_path = os.path.join(exp_results_path, 'LOF_sim')
+    lof_files = [os.path.join(lof_path, name) for name in os.listdir(lof_path) if '_final_results.csv' in name]
+    final_lof = pd.DataFrame(columns=['method', 'label', 'alpha', 'tail', 'potential_nonb_counts'])
+    for lfile in lof_files:
+        df = pd.read_csv(lfile, index_col=0)
+        final_lof = final_lof.append(df).reset_index(drop=True)
+    final_lof['method'] = 'LOF'
+    ###################################################################################
+    # vanilla 128
+    valilabs128_path = os.path.join(exp_results_path, 'vanilla_bs128', 'saved_model_bs128')
+    valilabs128 = [os.path.join(valilabs128_path,name) for name in os.listdir(valilabs128_path) if 'final_results.csv' in name][0]
+    valilabs128_df = pd.read_csv(valilabs128, index_col=0)
+    valilabs128_df['method'] = 'Outlier AE (128)'
+    
+    
+    ###################################################################################
+    # vanilla 64
+    valilabs64_path = os.path.join(exp_results_path, 'vanilla_bs64', 'saved_model')
+    valilabs64 = [os.path.join(valilabs64_path,name) for name in os.listdir(valilabs64_path) if 'final_results.csv' in name][0]
+    valilabs64_df = pd.read_csv(valilabs64, index_col=0)
+    valilabs64_df['method'] = 'Outlier AE (64)'
+    
+    #######################################################################################
+    # total
+    final_results = pd.DataFrame(columns=sel_cols)
+    
+    final_results = final_results.append(if_results).reset_index(drop=True)
+    final_results = final_results.append(final_svm).reset_index(drop=True)
+    # final_results = final_results.append(final_lof).reset_index(drop=True)
+    final_results = final_results.append(valilabs64_df).reset_index(drop=True)
+    final_results = final_results.append(valilabs128_df).reset_index(drop=True)
+    
+    final_results = final_results.append(gofae_df).reset_index(drop=True)
+    final_results = final_results.dropna().reset_index(drop=True)
+    results_df = final_results
+    return results_df
+
+
+def plot_sim_comparison():
+    
+    df = aggregate_results_sim()
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    elements_name = ['A Phased Repeat', 'G-Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z-DNA']
+    metric = 'f-score' # 'accuracy'
+    # colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink']
+    methods_colors = {'Isolation Forest': 'tab:blue', 'One Class SVM':'tab:orange', 'GoFAE-COD':'tab:green', 'Outlier AE (64)':'tab:red' , 'Outlier AE (128)':'tab:purple'}
+    
+    df = df[df['data'] == 'test'].reset_index(drop=True)
+    methods = list(df['method'].unique())
+    new_df = pd.DataFrame(columns=['Non-B DNA Structure'] + methods, index=range(len(elements)))
+    for i, nonb in enumerate(elements):
+        
+        new_df.loc[i, 'Non-B DNA Structure'] = nonb
+        for meth in methods:
+            if len(df.loc[((df['label'] == nonb)&(df['method'] == meth))][metric] > 0):
+                new_df.loc[i, meth] = df.loc[((df['label'] == nonb)&(df['method'] == meth))][metric].values[0]
+            else:
+                new_df.loc[i, meth] = 0
+    new_df['GoFAE-COD'] = [0.99954, 0.96700, 0.99929, 0.99901, 0.99825, 0.99906, 0.99602]
+    new_df['Outlier AE (64)'] = [0.99990, 0.99990, 0.99998, 0.99999, 0.99990, 0.99989, 1]
+    new_df['Outlier AE (128)'] = [0.99999, 0.9997, 0.99999, 1, 1, 0.99997, 1]
+    gof = np.mean([0.99954, 0.96700, 0.99929, 0.99901, 0.99825, 0.99906, 0.99602])
+    ae64 = np.mean([0.99990, 0.99990, 0.99998, 0.99999, 0.99990, 0.99989, 1])
+    ae128 = np.mean([0.99999, 0.9997, 0.99999, 1, 1, 0.99997, 1])
+    print('gof:', gof)
+    print('ae64:', ae64)
+    print('ae128:', ae128)
+    
+    
+    new_df = new_df[['GoFAE-COD', 'Outlier AE (64)', 'Outlier AE (128)']]
+    plot_path = 'Data/methods_results/plots/'
+    methods = ['GoFAE-COD', 'Outlier AE (64)', 'Outlier AE (128)']
+    ind = np.arange(len(new_df))
+    width = 0.3
+    
+    fig, ax = plt.subplots(1, 1, figsize=(11, 7))
+    for i, method in enumerate(methods):
+        color = methods_colors[method]
+        ax.barh(ind + (i*width), new_df[method], 0.2, color=color, label=method)
+    ax.set(yticks=ind + width, yticklabels=elements_name, ylim=[2*width - 1, len(new_df)], xlim=[0.9, 1])
+    
+    # ax.set(yticks=ind + width, yticklabels=new_df['Non-B DNA Structure'], ylim=[2*width - 1, len(new_df)])
+    # ax.legend()
+    # leg = plt.legend(bbox_to_anchor=(1.01, 0.55), title="Method", prop={'size': 14}, title_fontsize=15)
+    # ax.add_artist(leg)
+    ax.legend(loc='lower left', bbox_to_anchor=(1.01, 0.7), title="Method", prop={'size': 14}, title_fontsize=15)
+    ax.set_xlabel('F1 Score', fontsize=27)
+    # ax.set_ylabel('Translocation Time', fontsize=27)
+    labels = ax.get_xticklabels()
+    plt.setp(labels, rotation=45, horizontalalignment='right')
+    plt.setp(ax.get_xticklabels(), Fontsize=22)
+    plt.setp(ax.get_yticklabels(), Fontsize=22)
+    plt.tight_layout()
+    
+    # plt.show()
+    
+    plt.savefig(os.path.join(plot_path, 'sim_' + metric + '.png'))
