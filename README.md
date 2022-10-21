@@ -24,12 +24,3 @@ Find motif free regions.
 
 ### Step 6:
 Compute translocation signal on the non-overlapping windows.
-
-
-
-
-
-
-Abstract:
-Non-canonical (or non-B) DNA are genomic regions where the three-dimensional conformation of DNA deviates from the double helical structure.
-Non-B DNA play an important role in basic cellular processes and have been associated with genomic instability, gene regulation, and oncogenesis.
