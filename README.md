@@ -6,9 +6,10 @@ Goodness-of-fit contrastive autoencoder for outlier detection of non-B DNA in ON
 Non-canonical (or non-B) DNA are genomic regions where the three-dimensional conformation of
 DNA deviates from the double helical structure. Non-B DNA play an important role in basic cellular
 processes and have been associated with genomic instability, gene regulation, and oncogenesis.
-The non-B structures that we study here are the following:
+The DNA conformations that we study here are the following:
 
 
+![alt text](https://github.com/bayesomicslab/ONT-nonb-GoFAE-COD/figures/dna_conformation.PNG?raw=true)
 
 
 
