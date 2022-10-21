@@ -9,7 +9,7 @@ processes and have been associated with genomic instability, gene regulation, an
 The DNA conformations that we study here are the following:
 
 
-![alt text](https://github.com/bayesomicslab/ONT-nonb-GoFAE-COD/figures/dna_conformation.PNG?raw=true)
+![plot](./figures/dna_conformation.PNG?raw=true)
 
 
 
