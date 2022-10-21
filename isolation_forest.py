@@ -765,5 +765,5 @@ def isolation_forest_with_cross_val_synthetic_data():
 
 if __name__ == '__main__':
 
-    # isolation_forest_with_cross_val_experimental_data()
+    isolation_forest_with_cross_val_experimental_data()
     isolation_forest_with_cross_val_synthetic_data()

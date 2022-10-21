@@ -235,7 +235,6 @@ def load_data(bdna_folder, nonb_folder):
     test = te_df_bdna.append(nonb_te_df).sample(frac=1, random_state=42).reset_index(drop=True)
     return train, val, test
 
-
 def load_data_with_downsample_bdna(bdna_folder, nonb_folder):
     forward_tr, reverse_tr, forward_val, reverse_val, forward_te, reverse_te, \
     train_forward_mu, train_forward_std, train_reverse_mu, train_reverse_std = reprocess_data(bdna_folder)
