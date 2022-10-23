@@ -1,7 +1,7 @@
 # ONT-nonb-GoFAE-COD
 Goodness-of-fit contrastive autoencoder for outlier detection of non-B DNA in ONT sequencing.
 
-**NOTE:** **_GoF code will be released upon acceptance._**
+**NOTE:** **_GoFAE-COD code will be released upon acceptance._**
 
 ## What is non-B DNA?
 
