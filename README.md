@@ -105,6 +105,6 @@ Compute translocation signal on the non-overlapping windows.
 
 <p align="center">
 
-  <img width=90% height=90% src="https://user-images.githubusercontent.com/45966768/228676731-1c8ac6a9-8221-42db-aedd-d4e8096f9331.png">
+  <img width=60% height=60% src="https://user-images.githubusercontent.com/45966768/228676731-1c8ac6a9-8221-42db-aedd-d4e8096f9331.png">
 
 </p>
