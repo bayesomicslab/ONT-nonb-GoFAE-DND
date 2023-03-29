@@ -44,7 +44,7 @@ quantile_regionsFeatures_test_pairs=IWTomicsTest(regionsFeatures,id_region1=c('A
 save(quantile_regionsFeatures_test_pairs,file=paste0(path=file.path(data_path, 'iwt_results_10000_quantile_pairs.RData')))
 ## Adjusted p-value for each comparison and each feature
 
-load('D:/UCONN/nonBDNA/Data/iwt_10000/iwt_results_10000_quantile_pairs.RData')
+load('../../nonBDNA/Data/iwt_10000/iwt_results_10000_quantile_pairs.RData')
 adjusted_pval(quantile_regionsFeatures_test_pairs)
 
 pdf(file=file.path(plot_path, 'summary_plots.pdf'), width=17, height=3)
