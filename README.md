@@ -22,11 +22,7 @@ The DNA conformations that we study here are the following:
 Given the dramatic increase in genome-scale data produced using ONT platforms, and in
 particular ultra-long sequencing data that supports telomere-to-telomere level genome 
 assembly, we sought to develop a  parallel strategy for identifying non-B DNA structure by their 
-effects on sequencing speeds (translocation times) in ONT devices (
-Ni et al., [2019]((https://academic.oup.com/bioinformatics/article/35/22/4586/5474907)), 
-Liu et al., [2019]((https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-018-5372-8)),
-McIntyre et al., [2019]((https://www.nature.com/articles/s41467-019-08289-9)),
-Stoiber et al., [2017]((https://www.biorxiv.org/content/10.1101/094672v2.abstract))). 
+effects on sequencing speeds (translocation times) in ONT devices (Ni et al., [2019]((https://academic.oup.com/bioinformatics/article/35/22/4586/5474907)), Liu et al., [2019]((https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-018-5372-8)), McIntyre et al., [2019]((https://www.nature.com/articles/s41467-019-08289-9)), Stoiber et al., [2017]((https://www.biorxiv.org/content/10.1101/094672v2.abstract))). 
 
 
 
