@@ -2455,3 +2455,5 @@ def prepare_sim_outliers_results_ismb():
         plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.tif'), dpi=1200)
         plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.pdf'), dpi=1200)
 
+
+
