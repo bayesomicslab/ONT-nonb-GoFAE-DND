@@ -1,258 +1,233 @@
+import time
+import sys
 from utils import *
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.metrics import confusion_matrix
 from multiprocessing import Pool
+import math
 
-def build_lof(train_x, train_y, test_x, test_y, nn_param):
-    (cont, n_neighbor, leaf_size) = nn_param
+
+def local_outlier_factor(dataset, folder, results_path, n_bdna, n_nonb, thread):
+
+    if not os.path.exists(results_path):
+        os.mkdir(results_path)
+    #
+    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                   'Short_Tandem_Repeat']
+
     
-    measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
-    results = pd.DataFrame(columns=measures + ['data', 'contamination', 'n_neighbors', 'leaf_size'], index=[0, 1])
-    # lof_model = LocalOutlierFactor(n_neighbors=n_neighbor, leaf_size=leaf_size, contamination=cont).fit(train_x)
-    lof_model = LocalOutlierFactor(n_jobs=-1, novelty=True).fit(train_x)
-    train_y_pred = lof_model.predict(train_x)
-    train_y_pred[train_y_pred == 1] = 0
-    train_y_pred[train_y_pred == -1] = 1
-    tr_tn, tr_fp, tr_fn, tr_tp = confusion_matrix(train_y, train_y_pred).ravel()
-    tr_accuracy, tr_precision, tr_recall, tr_fscore, tr_fpr, tr_fnr, tr_fdr = compute_accuracy_metrics(tr_tn, tr_fp, tr_fn, tr_tp)
-    results.loc[0, :] = tr_tn, tr_fp, tr_fn, tr_tp, tr_accuracy, tr_precision, tr_recall, tr_fscore, tr_fpr, tr_fnr, tr_fdr, 'train', cont, n_neighbor, leaf_size
-    test_y_pred = lof_model.predict(test_x)
-    test_y_pred[test_y_pred == 1] = 0
-    test_y_pred[test_y_pred == -1] = 1
-    te_tn, te_fp, te_fn, te_tp = confusion_matrix(test_y, test_y_pred).ravel()
-    te_accuracy, te_precision, te_recall, te_fscore, te_fpr, te_fnr, tr_fdr = compute_accuracy_metrics(te_tn, te_fp, te_fn, te_tp)
-    results.loc[1, :] = te_tn, te_fp, te_fn, te_tp, te_accuracy, te_precision, te_recall, te_fscore, te_fpr, te_fnr, tr_fdr, 'test', cont, n_neighbor, leaf_size
-    return results
-
-
-def train_nonb_lof(inp):
-    global_train, global_val, global_test, save_path, nonb, method = inp
-    # for nonb in non_b_types:
+    method = 'LOF'
+    if dataset == 'exp':
+        results_name = '_'.join([dataset, method])
+        methods_results_path = os.path.join(results_path, results_name)
+        if not os.path.exists(methods_results_path):
+            os.mkdir(methods_results_path)
+        
+        win_sizes = [50]
+        
+        inputs = [[nonb, method, dataset, wins, folder, methods_results_path] for nonb in non_b_types
+                  for wins in win_sizes]
+        pool = Pool(thread)
+        pool.map(train_lof_nonb_exp, inputs)
+        # for inp in inputs:
+        #     train_lof_nonb_exp(inp)
+        
+        results_exp_pd = collect_results(results_path, results_name)
     
-    final_results_df = pd.DataFrame(columns=['method', 'label', 'alpha', 'tail', 'potential_nonb_counts'],
-                                    index=range(19*2))
+    if dataset == 'sim':
+        
+        results_name = '_'.join([dataset, method])
+        methods_results_path = os.path.join(results_path, results_name)
+        if not os.path.exists(methods_results_path):
+            os.mkdir(methods_results_path)
+        
+        # win_sizes = [25, 50, 75, 100]
+        win_sizes = [50]  # [25, 50, 75, 100]
+        nonb_ratios = [0.05, 0.1, 0.25]  # [0.025, 0.05, 0.075, 0.1, 0.25, 0.5]
+        inputs = [[nonb, method, dataset, wins, n_bdna, n_nonb, nbr, data_path,
+                   methods_results_path] for nonb in non_b_types for wins in win_sizes for nbr in nonb_ratios]
+        pool = Pool(thread)
+        pool.map(train_lof_nonb_sim, inputs)
+        # for inp in inputs:
+        #     print(inp[0], inp[1], inp[2], inp[3])
+        #     train_if_nonb_sim(inp)
+        results_sim_pd = collect_results(results_path, results_name)
+
+
+def train_lof_nonb_exp(inp):
+    model_sel = True
+    nonb, method, dataset, winsize, folder, main_folder = inp
+    result_name = '_'.join([dataset, method, nonb])
+    save_path = os.path.join(main_folder, result_name)
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    print('--------------- Model:', nonb)
+    print('Folder ' + save_path + ' created.')
+    
+    train, val, test, train_bed, val_bed, test_bed = load_data3(folder, nonb)
+    alpha_list = np.arange(0.05, 1, 0.05)
+    # alpha_list = np.arange(0.01, 1, 0.01)
+    tails = ['upper', 'lower']
+    final_results_df = pd.DataFrame(columns=['dataset', 'method', 'label', 'alpha', 'tail', 'potential_nonb_counts',
+                                             'training_time'], index=range(len(alpha_list) * len(tails)))
     counter = 0
-    train = global_train[(global_train['label'] == nonb)|(global_train['label'] == 'bdna')].reset_index(drop=True)
-    val = global_val[(global_val['label'] == nonb)|(global_val['label'] == 'bdna')].reset_index(drop=True)
-    test = global_test[(global_test['label'] == nonb)|(global_test['label'] == 'bdna')].reset_index(drop=True)
-
     train.loc[train['label'] == 'bdna', 'label'] = 0
     train.loc[train['label'] == nonb, 'label'] = 1
-
     val.loc[val['label'] == 'bdna', 'label'] = 0
     val.loc[val['label'] == nonb, 'label'] = 1
-
     test.loc[test['label'] == 'bdna', 'label'] = 0
     test.loc[test['label'] == nonb, 'label'] = 1
-
     convert_dict = {'label': int}
-
     train = train.astype(convert_dict)
     val = val.astype(convert_dict)
     test = test.astype(convert_dict)
-
+    
+    train, val = make_new_train_validation(train, val, ratio=5)
     train_x = train.drop(['label'], axis=1).to_numpy()
-    train_y = train[['label']].to_numpy()
+    
+    print(nonb, '# training samples:', len(train))
+    if model_sel:
+        print('Model selection ...')
+        best_param = lof_hyperparam_tuning(train, val, save_path)
+        start = time.time()
+        lof_model = LocalOutlierFactor(n_jobs=-1, n_neighbors=best_param, novelty=True).fit(train_x)
+        duration = round(time.time() - start, 3)
+    else:
+        start = time.time()
+        lof_model = LocalOutlierFactor(n_jobs=-1, novelty=True).fit(train_x)
+        duration = round(time.time() - start, 3)
+    
+    null_dist_scores, eval_scores = calc_null_eval_distributions(test, lof_model)
+    
+    print('Evaluation ... ')
+    
+    for tail in ['lower', 'upper']:
+        for alpha in list(np.arange(0.05, 0.55, 0.05)):
+            sel_test_bed, non_b_count = evaluation_exp2(test, test_bed, null_dist_scores, eval_scores, alpha, tail)
+            if any([math.isclose(alpha, num) for num in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]]):
+                print(method, tail, alpha, len(sel_test_bed))
+                if len(sel_test_bed) > 0:
+                    sel_test_bed.to_csv(os.path.join(save_path, 'test_alpha_{}_{}.bed'.format(alpha, tail)), sep='\t',
+                                        index=False, header=False)
+            final_results_df.loc[counter, :] = 'experimental', method, nonb, alpha, tail, non_b_count, duration
+            counter += 1
+            final_results_df.to_csv(os.path.join(save_path, 'final_results.csv'))
+    
+    print(os.path.join(save_path, 'final_results.csv'), ' saved.')
 
-    val_x = val.drop(['label'], axis=1).to_numpy()
-    val_y = val[['label']].to_numpy()
 
-    # test_x = test.drop(['label'], axis=1).to_numpy()
-    # test_y = test[['label']].to_numpy()
-
-    # contaminations = [0.001]
-    # n_neighbors_list = [10]
-    # leaf_size_list = [30]
-    #
-    # for cont in contaminations:
-    #     for n_neighbor in n_neighbors_list:
-    #         for leaf_size in leaf_size_list:
-    #             print(nonb, cont, n_neighbor, leaf_size)
-    #             params = (cont, n_neighbor, leaf_size)
-    #             this_results_df = build_lof(train_x, train_y, val_x, val_y, params)
-    #             this_results_df['label'] = nonb
-    #             results = results.append(this_results_df).reset_index(drop=True)
-    #             results.to_csv(os.path.join(save_path, method + '_cv.csv'))
-    #
-    # # find the best params in validation data
-    # test_results = results[results['data'] == 'test']
-    # min_fdr = np.min(test_results['fdr'])
-    # best_row = test_results[test_results['fdr'] == min_fdr]
-    #
-    # # select the best param:
-    # # best_cont = best_row['contamination'].values[0]
-    # best_neighbors = best_row['n_neighbors'].values[0]
-    # # best_leafsize = best_row['leaf_size'].values[0]
-
-    train = train.append(val).reset_index(drop=True)
-    train_x = train.drop(['label'], axis=1).to_numpy()
-    print(nonb, len(train))
-    # train with new train (train + val) and the best param
-    lof_model = LocalOutlierFactor(n_jobs=-1, novelty=True).fit(train_x)
-
-    # test only using the test set:
-    test_bdna = test[test['label'] == 0].reset_index(drop=True)
-    test_bdna_x = test_bdna.drop(['label'], axis=1).to_numpy()
-    # test_bdna_y = test_bdna[['label']].to_numpy()
-
-    test_nonb = test[test['label'] == 1].reset_index(drop=True)
-    test_nonb_x = test_nonb.drop(['label'], axis=1).to_numpy()
-
-    null_dist_scores = lof_model.decision_function(test_bdna_x)
-    eval_scores = lof_model.decision_function(test_nonb_x)
-
-    plot_histogram(null_dist_scores, nonb + '_' + method + '_test_bdna_scores', save_path)
-    plot_histogram(eval_scores, nonb + '_' + method + '_test_nonb_scores', save_path)
-
+def train_lof_nonb_sim(inp):
+    model_sel = True
+    nonb, method, dataset, winsize, n_bdna, n_nonb, nonb_ratio, folder, main_folder = inp
+    print('-----------Model: ', nonb, nonb_ratio)
+    result_name = '_'.join([dataset, method, nonb, str(nonb_ratio)])
+    save_path = os.path.join(main_folder, result_name)
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    print('Folder ' + save_path + ' created.')
+    global_train, global_val, global_test = load_data2(folder, winsize, n_bdna, n_nonb, nonb_ratio=nonb_ratio)
+    
+    # alpha_list = np.arange(0.01, 1, 0.01)
     alpha_list = np.arange(0.05, 1, 0.05)
-    emp_dist, indices = compute_empirical(null_dist_scores, eval_scores, tail='upper')
-    plot_histogram(emp_dist, nonb + '_' + method + '_p_values_upper', save_path)
-
-    for alpha in alpha_list:
-        val_emp, _ = FDR_BHP(emp_dist, alpha=alpha)
-        final_results_df.loc[counter, :] = method, nonb, alpha, 'upper', val_emp
-        counter += 1
-
-    emp_dist, indices = compute_empirical(null_dist_scores, eval_scores, tail='lower')
-    plot_histogram(emp_dist, nonb + '_' + method + '_p_values_lower', save_path)
-
-    for alpha in alpha_list:
-        val_emp, _ = FDR_BHP(emp_dist, alpha=alpha)
-        final_results_df.loc[counter, :] = method, nonb, alpha, 'lower', val_emp
-        counter += 1
+    tails = ['upper', 'lower']
+    final_results_df = pd.DataFrame(columns=['dataset', 'method', 'label', 'window_size', 'nonb_ratio', 'alpha', 'tail',
+                                             'tp', 'tn', 'fp', 'fn', 'precision', 'recall', 'fpr', 'tpr', 'fscore',
+                                             'duration', 'function'], index=range(len(alpha_list) * len(tails) * 2))
+    counter = 0
+    train = global_train[(global_train['label'] == nonb) | (global_train['label'] == 'bdna')].reset_index(drop=True)
+    val = global_val[(global_val['label'] == nonb) | (global_val['label'] == 'bdna')].reset_index(drop=True)
+    test = global_test[(global_test['label'] == nonb) | (global_test['label'] == 'bdna')].reset_index(drop=True)
     
-    final_results_df.to_csv(os.path.join(save_path, method + nonb + '_final_results.csv'))
-
-
-def local_outlier_factor_with_cross_val_experimental_data():
-    method = 'LOF_50'
-    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                   'Short_Tandem_Repeat', 'Z_DNA_Motif']
-    non_b_path = '/home/mah19006/projects/nonBDNA/data/prepared_windows_req5/dataset/outliers/centered_windows'
-    bdna_path = '/home/mah19006/projects/nonBDNA/data/prepared_windows_req5/dataset/bdna'
-
-    # bdna_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/experimental_50'
-    # non_b_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/experimental_50'
+    train.loc[train['label'] == nonb, 'label'] = 1
+    train.loc[train['label'] == 'bdna', 'label'] = 0
     
-    methods_results_path = '/home/mah19006/projects/nonBDNA/data/methods_results'
-    # methods_results_path = '/labs/Aguiar/non_bdna/methods'
-    if not os.path.exists(methods_results_path):
-        os.mkdir(methods_results_path)
-    save_path = os.path.join(methods_results_path, method)
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
+    val.loc[val['label'] == nonb, 'label'] = 1
+    val.loc[val['label'] == 'bdna', 'label'] = 0
     
-    # measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
-    # results = pd.DataFrame(columns=measures + ['data', 'contamination', 'n_neighbors', 'leaf_size', 'label'])
-    # final_results_df = pd.DataFrame(columns=['method', 'label', 'alpha', 'tail', 'potential_nonb_counts'],
-    #                                 index=range(7*19*2))
-    # global_train, global_val, global_test = load_data(bdna_path, non_b_path)
-    global_train, global_val, global_test = load_data_with_downsample_bdna(bdna_path, non_b_path)
+    test.loc[test['label'] == nonb, 'label'] = 1
+    test.loc[test['label'] == 'bdna', 'label'] = 0
     
-    inputs = [[global_train, global_val, global_test, save_path, nonb ,method] for nonb in non_b_types]
-    # pool = Pool(4)
-    # pool.map(train_nonb_lof, inputs)
-    for inp in inputs:
-        train_nonb_lof(inp)
+    convert_dict = {'label': int}
     
-
-def local_outlier_factor_with_cross_val_synthetic_data():
-    method = 'LOF_50_sim'
-    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                   'Short_Tandem_Repeat', 'Z_DNA_Motif']
-    # non_b_path = '/mnt/research/aguiarlab/proj/nonBDNA/data/exponential_simulated_data'
-    # bdna_path = '/mnt/research/aguiarlab/proj/nonBDNA/data/exponential_simulated_data/'
-
-    non_b_path = '/home/mah19006/projects/nonBDNA/data/sim_50'
-    bdna_path = '/home/mah19006/projects/nonBDNA/data/sim_50'
-
-    # methods_results_path = '/mnt/research/aguiarlab/proj/nonBDNA/data/methods_results'
-    methods_results_path = '/home/mah19006/projects/nonBDNA/data/methods_results'
+    train = train.astype(convert_dict)
+    val = val.astype(convert_dict)
+    test = test.astype(convert_dict)
     
-    if not os.path.exists(methods_results_path):
-        os.mkdir(methods_results_path)
-    save_path = os.path.join(methods_results_path, method)
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-
-    measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
-    results = pd.DataFrame(columns=measures + ['data', 'contamination', 'n_neighbors', 'leaf_size', 'label'])
+    train_x = train.drop(['label', 'true_label'], axis=1).to_numpy()
     
-    final_results_df = pd.DataFrame(columns=measures + ['data', 'contamination', 'n_neighbors', 'leaf_size', 'label', 'method'])
-    # global_train, global_val, global_test = load_data(bdna_path, non_b_path)
-    global_train, global_val, global_test = load_data_with_downsample_bdna(bdna_path, non_b_path)
-    print(len(global_train))
-    for nonb in non_b_types:
-        print(nonb)
-        train = global_train[(global_train['label'] == nonb)|(global_train['label'] == 'bdna')].reset_index(drop=True)
-        val = global_val[(global_val['label'] == nonb)|(global_val['label'] == 'bdna')].reset_index(drop=True)
-        test = global_test[(global_test['label'] == nonb)|(global_test['label'] == 'bdna')].reset_index(drop=True)
-        
-        train.loc[train['label'] == 'bdna', 'label'] = 0
-        train.loc[train['label'] == nonb, 'label'] = 1
-        
-        val.loc[val['label'] == 'bdna', 'label'] = 0
-        val.loc[val['label'] == nonb, 'label'] = 1
-        
-        test.loc[test['label'] == 'bdna', 'label'] = 0
-        test.loc[test['label'] == nonb, 'label'] = 1
-        
-        convert_dict = {'label': int}
-        
-        train = train.astype(convert_dict)
-        val = val.astype(convert_dict)
-        test = test.astype(convert_dict)
-        
-        train_x = train.drop(['label'], axis=1).to_numpy()
-        train_y = train[['label']].to_numpy()
-        
-        val_x = val.drop(['label'], axis=1).to_numpy()
-        val_y = val[['label']].to_numpy()
-        
-        test_x = test.drop(['label'], axis=1).to_numpy()
-        test_y = test[['label']].to_numpy()
-
-        # contaminations = [0.001]
-        # n_neighbors_list = [10]
-        # leaf_size_list = [30]
-        #
-        # for cont in contaminations:
-        #     for n_neighbor in n_neighbors_list:
-        #         for leaf_size in leaf_size_list:
-        #             print(nonb, cont, n_neighbor, leaf_size)
-        #             params = (cont, n_neighbor, leaf_size)
-        #             this_results_df = build_lof(train_x, train_y, val_x, val_y, params)
-        #             this_results_df['label'] = nonb
-        #
-        #             results = results.append(this_results_df).reset_index(drop=True)
-        #             results.to_csv(os.path.join(save_path, method + '_cv_sim_data.csv'))
-        #
-        # # find the best params in validation data
-        # test_results = results[results['data'] == 'test']
-        # min_fdr = np.min(test_results['fdr'])
-        # best_row = test_results[test_results['fdr'] == min_fdr]
-        #
-        # # select the best param:
-        # best_cont = best_row['contamination'].values[0]
-        # best_neighbors = best_row['n_neighbors'].values[0]
-        # best_leafsize = best_row['leaf_size'].values[0]
-        # best_param = (best_cont, best_neighbors, best_leafsize)
-        
-        # train with new train (train + val) and the best param
-        train = train.append(val).reset_index(drop=True)
-        train_x = train.drop(['label'], axis=1).to_numpy()
-        train_y = train[['label']].to_numpy()
-        
-        print('start training:')
-        best_results_df = build_lof(train_x, train_y, test_x, test_y, (1, 2, 2))
-        best_results_df['label'] = nonb
-        best_results_df['method'] = method
-        
-        final_results_df = final_results_df.append(best_results_df).reset_index(drop=True)
-        final_results_df.to_csv(os.path.join(save_path, method + '_final_results.csv'))
+    # hyperparam tunning:
+    print(nonb, '# training samples:', len(train))
+    if model_sel:
+        print('Model selection ...')
+        best_param = lof_hyperparam_tuning(train, val, save_path)
+        start = time.time()
+        lof_model = LocalOutlierFactor(n_jobs=-1, novelty=True, n_neighbors=best_param).fit(train_x)
+        duration = round(time.time() - start, 3)
+    else:
+        start = time.time()
+        lof_model = LocalOutlierFactor(n_jobs=-1, novelty=True).fit(train_x)
+        duration = round(time.time() - start, 3)
+    
+    print('Compute distributions ... ')
+    null_dist_scores, eval_scores = calc_null_eval_distributions(test, lof_model)
+    null_dist_scores_scores, eval_scores_scores = calc_null_eval_distributions_scores(test, lof_model)
+    plot_histogram(null_dist_scores, method + '_' + nonb + '_test_bdna_decision_function', save_path)
+    plot_histogram(eval_scores, method + '_' + nonb + '_test_nonb_decision_function', save_path)
+    plot_histogram(null_dist_scores_scores, method + '_' + nonb + '_test_bdna_scores', save_path)
+    plot_histogram(eval_scores_scores, method + '_' + nonb + '_test_nonb_scores', save_path)
+    print('Evaluation ... ')
+    
+    for tail in tails:
+        for alpha in alpha_list:
+            # print(tail, alpha)
+            p_values, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores, eval_scores, alpha, tail)
+            plot_histogram(p_values, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'decision_p_values']),
+                           save_path)
+            precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
+            final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
+                                               fn, precision, recall, fpr, tpr, fscore, duration, 'decision_function'
+            counter += 1
+            p_values_2, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores_scores, eval_scores_scores, alpha, tail)
+            plot_histogram(p_values_2, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'scores_p_values']),
+                           save_path)
+            precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
+            final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
+                                               fn, precision, recall, fpr, tpr, fscore, duration, 'scores'
+            counter += 1
+    final_results_df.to_csv(os.path.join(save_path, 'final_results.csv'))
 
 
 if __name__ == '__main__':
+    if '-d' in sys.argv:
+        dataset = sys.argv[sys.argv.index('-d') + 1]
+    else:
+        # dataset = 'exp', 'sim'
+        dataset = ''
     
-    local_outlier_factor_with_cross_val_experimental_data()
-    # local_outlier_factor_with_cross_val_synthetic_data()
+    if '-f' in sys.argv:
+        data_path = sys.argv[sys.argv.index('-f') + 1]
+    else:
+        data_path = ''
+
+    if '-r' in sys.argv:
+        results_path = sys.argv[sys.argv.index('-r') + 1]
+    else:
+        results_path = ''
+
+    if '-t' in sys.argv:
+        thread = int(sys.argv[sys.argv.index('-t') + 1])
+    else:
+        thread = 1
+    
+    if '-nb' in sys.argv:
+        n_nonb = int(sys.argv[sys.argv.index('-nb') + 1])
+    else:
+        n_nonb = 20_000
+    
+    # total number of bdna simulated
+    if '-b' in sys.argv:
+        n_bdna = int(sys.argv[sys.argv.index('-b') + 1])
+    else:
+        n_bdna = 200_000
+    
+    local_outlier_factor(dataset, data_path, results_path, n_bdna, n_nonb, thread)
+
+
