@@ -1,4 +1,3 @@
-import math
 import os
 import pickle
 import gzip
@@ -7,8 +6,6 @@ import numpy as np
 import pandas as pd
 import scipy
 import scipy.stats as stats
-import matplotlib.pyplot as plt
-import seaborn as sns
 from scipy.interpolate import make_interp_spline
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
@@ -22,7 +19,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
-from sklearn.gaussian_process.kernels import RBF, WhiteKernel, DotProduct
+from sklearn.gaussian_process.kernels import DotProduct
 from multiprocessing import Pool
 
 
@@ -687,41 +684,6 @@ def FDR_BHP2(dist, alpha=0.5):
     return valemp, estimated_proportion
 
 
-def plot_histogram(lst, name, save_path):
-    plt.cla()
-    plt.clf()
-    plt.close()
-    plt.hist(lst, bins=30)
-    plt.xlabel(name)
-    plt.ylabel('Count')
-    plt.tight_layout()
-    plt.savefig(os.path.join(save_path, name + '.png'))
-
-
-def plot_roc_curve(fpr, tpr, roc_auc_score, dataset, method, nonb, save_path):
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    ax.plot(fpr, tpr, linewidth=4, label='ROC Curve')
-    plt.xlabel('False Positive Rate', fontsize=15)  # Add an x-label to the axes.
-    plt.ylabel('True Negative Rate', fontsize=15)  # Add a y-label to the axes.
-    ax.legend()
-    title = '{} \nROC-AUC: {:.4f}'.format(method, roc_auc_score)
-    plt.title(title, fontsize=15)
-    plt.tight_layout()
-    plt.savefig(os.path.join(save_path, dataset + '_' + method + '_' + nonb + '_eval_ROC.png'))
-
-
-def plot_PR_curve(recall, precision, pr_auc, dataset, method, nonb, save_path):
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    ax.plot(recall, precision, linewidth=4, label='PR Curve')
-    plt.xlabel('Recall', fontsize=15)  # Add an x-label to the axes.
-    plt.ylabel('Precision', fontsize=15)  # Add a y-label to the axes.
-    ax.legend()
-    title = '{}\nPR-AUC: {:.4f}'.format(method, pr_auc)
-    plt.title(title, fontsize=15)
-    plt.tight_layout()
-    plt.savefig(os.path.join(save_path, dataset + '_' + method + '_' + nonb + '_eval_PR.png'))
-
-
 def calc_null_eval_distributions(test, if_model):
     test_bdna = test[test['label'] == 0].reset_index(drop=True)
     test_nonb = test[test['label'] == 1].reset_index(drop=True)
@@ -836,60 +798,6 @@ def biased_corrected_criteria(tn, fp, fn, tp, test, g_p, beta=0):
 
 
 
-def plot_results_roc_pr(results_pd, plot_path, plot_type):
-    """Plot roc or pr for sim data"""
-    # path = 'results/sim_IF/final_results_sim_IF.csv'
-    # results_pd = pd.read_csv(path, index_col=0)
-    filtereted_results_pd = results_pd[results_pd['tail'] == 'upper'].reset_index(drop=True)
-    train_sets = list(filtereted_results_pd['train_set'].unique())
-    windows = list(filtereted_results_pd['window_size'].unique())
-    # windows = [25, 50, 75, 100]
-    non_bs = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-              'Short_Tandem_Repeat', 'Z_DNA_Motif']
-    for win_id, win in enumerate(windows):
-        for ts in train_sets:
-            thisdf = filtereted_results_pd[(filtereted_results_pd['window_size'] == win) &
-                                           (filtereted_results_pd['train_set'] == ts)].reset_index(drop=True)
-            labels = list(thisdf['label'].unique())
-            for label in labels:
-                lb_df = thisdf[thisdf['label'] == label].reset_index(drop=True)
-                nonb_ratios = list(lb_df['nonb_ratio'].unique())
-                
-                # if len(lb_df) < 19:
-                #     print(win, ts, label)
-                plot_name = ''
-                x_labeb = ''
-                y_labeb = ''
-                fig, ax = plt.subplots(1, figsize=(7, 7))
-                for nbr in nonb_ratios:
-                    lb_nbratio = lb_df[lb_df['nonb_ratio'] == nbr].reset_index(drop=True)
-                    if plot_type == 'ROC':
-                        x = list(lb_nbratio['fpr'])
-                        y = list(lb_nbratio['tpr'])
-                        plot_name = '_'.join([ts, label, str(win)]) + '_ROC_plot.png'
-                        x_labeb = 'FPR'
-                        y_labeb = 'TPR'
-                    elif plot_type == 'PR':
-                        x = list(lb_nbratio['recall'])
-                        y = list(lb_nbratio['precision'])
-                        plot_name = '_'.join([ts, label, str(win)]) + '_PR_plot.png'
-                        x_labeb = 'Recall'
-                        y_labeb = 'Precision'
-                    else:
-                        return
-                    # new_fpr, new_tpr = make_smooth(fpr, tpr, degree=3)
-                    ax.plot(x, y, linewidth=3, label='Nonb ratio: ' + str(nbr))
-                ax.set_xlabel(x_labeb, fontsize=13)  # Add an x-label to the axes.
-                ax.set_ylabel(y_labeb, fontsize=13)  # Add a y-label to the axes.
-                title = 'Window size: {}, \nTrained on: {}, \nTest on: {}'.format(win, ts, label)
-                ax.set_title(title, fontsize=13)
-                ax.legend(bbox_to_anchor=(1.1, 1.1))
-                plt.tight_layout()
-                # plt.show()
-                plt.savefig(os.path.join(plot_path, plot_name))
-    return
-
-
 def collect_results(results_path, results_name):
     methods_results_path = os.path.join(results_path, results_name)
     non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
@@ -912,14 +820,6 @@ def make_smooth(x, y, degree=3):
     return xnew, y_smooth
 
 
-def plot_sim(results_path, results_name):
-    results_sim_pd = collect_results(results_path, results_name)
-    methods_results_path = os.path.join(results_path, results_name)
-    plot_path = os.path.join(methods_results_path, 'plots')
-    if not os.path.exists(plot_path):
-        os.mkdir(plot_path)
-    plot_results_roc_pr(results_sim_pd, plot_path, 'ROC')
-    plot_results_roc_pr(results_sim_pd, plot_path, 'PR')
 
 
 def make_bed_files_for_splits(bdna_folder, nonb_folder, win_size, frac):

@@ -1,8 +1,7 @@
 import time
 import sys
 from utils import *
-from multiprocessing import Pool
-from sklearn import metrics
+
 
 def svc_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
     if not os.path.exists(results_path):

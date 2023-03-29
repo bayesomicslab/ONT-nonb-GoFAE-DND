@@ -4,7 +4,7 @@ import seaborn as sns
 import numpy as np
 import h5py
 import os
-from utils import prepare_bdna_dataset
+from utils import prepare_bdna_dataset, collect_results
 from multiprocessing import Pool
 
 def convert_to_pA_numpy(d, digitisation, fast5_range, offset):
@@ -553,14 +553,6 @@ def sh_commands_print():
                 file.write(comm)
                 file.write(comm2)
 
-def samtools_depth_commands():
-    source_path = '/labs/Aguiar/non_bdna/human/na12878/bam_files/filtered_per_chr/'
-    save_path = '/labs/Aguiar/non_bdna/human/na12878/depth/'
-    files = sorted([name for name in os.listdir(source_path) if '.bam' in name])
-    for f in files:
-        name = f.split('.bam')[0]
-        comm = 'samtools depth -Q 20 {}{}.bam > {}{}.txt'.format(source_path, name, save_path, name)
-        print(comm)
 
 
 def plot_motif_length():
@@ -587,26 +579,6 @@ def plot_motif_length():
     plt.savefig('motif_length_density_by_chromosome.png')
 
 
-def plot_MAPQ_histograms_per_chr():
-    bed_path = '/labs/Aguiar/non_bdna/human/na12878/bam_files/filtered_per_chr'
-    plot_path = '/labs/Aguiar/non_bdna/human/na12878/bam_files/plots/'
-    all_chr = [name for name in os.listdir(bed_path) if '.bed' in name]
-    for filename in all_chr:
-        plot_name = filename.split('.bed')[0]
-        filtered_df = pd.read_csv(os.path.join(bed_path, filename), names=['chr', 'start', 'end', 'read_id', 'score', 'strand'],
-                                  index_col=False, sep='\t')
-        n_duplicates = np.sum(filtered_df.duplicated())
-        ratio = n_duplicates/len(filtered_df)
-        unique_df = filtered_df.drop_duplicates().reset_index(drop=True)
-        scores = list(unique_df['score'])
-        plt.cla()
-        plt.clf()
-        plt.close()
-        plt.hist(scores, 20)
-        plt.title(plot_name + ' - number of duplicates:'+ str(n_duplicates)+ ' - ratio:'+ str(round(ratio, 4)))
-        plt.savefig(os.path.join(plot_path, plot_name + '.png'))
-        print(os.path.join(plot_path, plot_name + '.png'))
-
 def plt_depth(inp):
     filename, path, plot_path = inp
     # filename = 'chr7+.txt'
@@ -629,17 +601,7 @@ def plt_depth(inp):
     print(os.path.join(plot_path, plot_name + '.png'))
 
     
-def plot_depth_histograms_per_chr():
-    path = '/labs/Aguiar/non_bdna/human/na12878/depth/'
-    plot_path = '/labs/Aguiar/non_bdna/human/na12878/depth/plots/'
-    # all_chr = [name for name in os.listdir(path) if '.txt' in name]
-    existing_plots = [name for name in os.listdir(plot_path) if '.png' in name]
-    all_chr = [[name, path, plot_path] for name in os.listdir(path) if '.txt' in name and not name.split('.txt')[0]+'.png' in existing_plots]
-    # print(len(all_chr))
-    # pool = Pool(3)
-    # pool.map(plt_depth, all_chr)
-    for allc in all_chr:
-        plt_depth(allc)
+
 
 
 def plot_preprocessing_fig1():
@@ -778,226 +740,9 @@ def plot_preprocessing_fig1():
     plt.savefig('Figures/fig1_dist.png')
 
 
-def plot_stats_bdna():
-    forward_tr, forward_val, forward_te, reverse_tr, reverse_val, reverse_te = prepare_bdna_dataset()
-
-    def get_stat_scaler(x):
-        med = np.median(x)
-        q1 = np.percentile(x, 25, interpolation='midpoint')
-        q3 = np.percentile(x, 75, interpolation='midpoint')
-        iqr = q3 - q1
-        return med, iqr
-        
-    def get_stat(x):
-        med = np.median(x, axis=0)
-        q1 = np.percentile(x, 25, interpolation='midpoint', axis=0)
-        q3 = np.percentile(x, 75, interpolation='midpoint', axis=0)
-        iqr = q3 - q1
-        return med, iqr
-      
-    medftr, iqrftr = get_stat(forward_tr)
-    medfval, iqrfval = get_stat(forward_val)
-    medfte, iqrfte = get_stat(forward_te)
-    medrtr, iqrrtr = get_stat(reverse_tr)
-    medrval, iqrrval = get_stat(reverse_val)
-    medrte, iqrrte = get_stat(reverse_te)
-    
-    medftrscaler, iqrftrscaler = get_stat_scaler(forward_tr)
-    medfvalscaler, iqrfvalscaler = get_stat_scaler(forward_val)
-    medftescaler, iqrftescaler = get_stat_scaler(forward_te)
-    medrtrscaler, iqrrtrscaler = get_stat_scaler(reverse_tr)
-    medrvalscaler, iqrrvalscaler = get_stat_scaler(reverse_val)
-    medrtescaler, iqrrtescaler = get_stat_scaler(reverse_te)
-    
-    positions = np.arange(100)
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-    ax.plot(positions, medftr, linewidth=1, label='Median Forward Training')
-    ax.plot(positions, medfval, linewidth=1, label='Median Forward Validation')
-    ax.plot(positions, medfte, linewidth=1, label='Median Forward Test')
-    # ax.plot(positions, medrtr, linewidth=1, label='median reverse training')
-    # ax.plot(positions, medrval, linewidth=1, label='median reverse validation')
-    # ax.plot(positions, medrte, linewidth=1, label='median reverse test')
-    plt.xlabel('Positions', fontsize=15)  # Add an x-label to the axes.
-    plt.ylabel('Value', fontsize=15)  # Add a y-label to the axes.
-    ax.legend()
-    title = 'Median in all positions' \
-            '\nForward Median TR: {}, Forward Median val: {}, Forward Median TE: ' \
-            '{}'.format(str(round(medftrscaler, 5)), str(round(medfvalscaler, 5)), str(round(medftescaler, 5)))
-    plt.title(title, fontsize=15)
-    plt.tight_layout()
-    plt.savefig('/home/mah19006/projects/nonBDNA/data/median_forward.png')
-    
-    positions = np.arange(100)
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-    # ax.plot(positions, medftr, linewidth=1, label='median forward training')
-    # ax.plot(positions, medfval, linewidth=1, label='median forward validation')
-    # ax.plot(positions, medfte, linewidth=1, label='median forward test')
-    ax.plot(positions, medrtr, linewidth=1, label='Median Reverse Training')
-    ax.plot(positions, medrval, linewidth=1, label='Median Reverse Validation')
-    ax.plot(positions, medrte, linewidth=1, label='Median Reverse Test')
-    plt.xlabel('Positions', fontsize=15)  # Add an x-label to the axes.
-    plt.ylabel('Value', fontsize=15)      # Add a y-label to the axes.
-    ax.legend()
-    title = 'Median in all positions' \
-            '\nReverse Median TR: {}, Reverse Median val: {}, Reverse Median TE: ' \
-            '{}'.format(str(round(medrtrscaler, 5)), str(round(medrvalscaler, 5)), str(round(medrtescaler, 5)))
-    plt.title(title, fontsize=15)
-    plt.tight_layout()
-    plt.savefig('/home/mah19006/projects/nonBDNA/data/median_reverse.png')
-    
-    positions = np.arange(100)
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-    ax.plot(positions, iqrftr, linewidth=1, label='IQR Forward Training')
-    ax.plot(positions, iqrfval, linewidth=1, label='IQR Forward Validation')
-    ax.plot(positions, iqrfte, linewidth=1, label='IQR Forward Test')
-    # ax.plot(positions, iqrrtr, linewidth=1, label='IQR reverse training')
-    # ax.plot(positions, iqrrval, linewidth=1, label='IQR reverse validation')
-    # ax.plot(positions, iqrrte, linewidth=1, label='IQR reverse test')
-    plt.xlabel('Positions', fontsize=15)  # Add an x-label to the axes.
-    plt.ylabel('Value', fontsize=15)      # Add a y-label to the axes.
-    ax.legend()
-    title = 'IQR in all positions' \
-            '\nForward IQR TR: {}, Forward IQR val: {}, Forward IQR TE: {}'.format(str(round(iqrftrscaler, 5)),
-                                                                                   str(round(iqrfvalscaler, 5)),
-                                                                                   str(round(iqrftescaler, 5)))
-    plt.title(title, fontsize=15)
-    plt.tight_layout()
-    plt.savefig('/home/mah19006/projects/nonBDNA/data/IQR_forward.png')
-    
-    positions = np.arange(100)
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-    # ax.plot(positions, iqrftr, linewidth=1, label='IQR forward training')
-    # ax.plot(positions, iqrfval, linewidth=1, label='IQR forward validation')
-    # ax.plot(positions, iqrfte, linewidth=1, label='IQR forward test')
-    ax.plot(positions, iqrrtr, linewidth=1, label='IQR Reverse Training')
-    ax.plot(positions, iqrrval, linewidth=1, label='IQR Reverse Validation')
-    ax.plot(positions, iqrrte, linewidth=1, label='IQR Reverse Test')
-    plt.xlabel('Positions', fontsize=15)  # Add an x-label to the axes.
-    plt.ylabel('Value', fontsize=15)  # Add a y-label to the axes.
-    ax.legend()
-    title = 'IQR in all positions' \
-            '\nReverse IQR TR: {}, Reverse IQR val: {}, Reverse IQR TE: {}'.format(str(round(iqrrtrscaler, 5)),
-                                                                                   str(round(iqrrvalscaler, 5)),
-                                                                                   str(round(iqrrtescaler, 5)))
-    plt.title(title, fontsize=15)
-    plt.tight_layout()
-    plt.savefig('/home/mah19006/projects/nonBDNA/data/IQR_reverse.png')
 
 
-
-
-def plot_elems():
-    chrom_list = ['chr1+', 'chr2+', 'chr3+', 'chr4+', 'chr5+', 'chr6+', 'chr7+']
-    import matplotlib.pyplot as plt
-    main_path = 'D:\\UCONN\\nonBDNA\\IWT\\IWT_paper\\Signals_np'
-    
-    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Control']
-    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
-                     'Short Tandem Repeat', 'Z DNA', 'Control']
-    features = ['Translocation', 'Current']
-    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
-    x = range(0, 100)
-    
-    for chrom in chrom_list:
-        
-        for quant in quantiles:
-            fig, axis = plt.subplots(2, 1, figsize=(13, 10))
-            for i in range(2):
-                feature = features[i]
-                for elem_id in range(len(elements)):
-                    elem = elements[elem_id]
-                    elem_name = elements_name[elem_id]
-                    path = os.path.join(main_path, chrom, feature + '_' + elem + '.npy')
-                    signal = pd.read_csv(path, sep=' ', header=None)
-                    signal_quantile = np.quantile(signal, quant, axis=0)
-                    # signal = np.load(path, allow_pickle=True)
-                    axis[i].plot(x, signal_quantile, label=elem_name)  # Plot some data on the axes.
-                axis[i].set_title(chrom + ' - ' + feature + ' - ' + 'Quantile:' + str(quant), fontsize=20)
-                axis[i].set_xlabel('Positions in windows', fontsize=15)  # Add an x-label to the axes.
-                axis[i].set_ylabel('Value', fontsize=15)  # Add a y-label to the axes.
-                axis[i].legend()  # Add a legend.
-            plt.tight_layout()
-            plt.savefig(os.path.join(main_path, chrom + '_quantile_' + str(quant) + '.png'))
-
-
-def plot_non_b_types():
-    import matplotlib.pyplot as plt
-    main_path = '/labs/Aguiar/non_bdna/annotations/windows/Signals_translocation/'
-    plot_path = '/labs/Aguiar/non_bdna/paper/plots'
-    chrom_list = ['chr' + str(i) for i in list(range(1, 23)) + ['X', 'Y']]
-    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Control']
-    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
-                     'Short Tandem Repeat', 'Z DNA', 'Control']
-    features = ['Translocation']
-    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
-    x = range(0, 100)
-    
-    elems_pd_list = {feature: [pd.DataFrame() for elem_id in range(len(elements))] for feature in features}
-    
-    for elem_id in range(len(elements)):
-        elem = elements[elem_id]
-        for i in range(len(features)):
-            feature = features[i]
-            for chrom in chrom_list:
-                path = os.path.join(main_path, chrom, feature + '_' + elem + '.npy')
-                signal = pd.read_csv(path, sep=' ', header=None)
-                elems_pd_list[feature][elem_id] = elems_pd_list[feature][elem_id].append(signal).reset_index(drop=True)
-    
-    for quant in quantiles:
-        fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-        for elem_id in range(len(elements)):
-            elem_name = elements_name[elem_id]
-            for i in range(len(features)):
-                feature = features[i]
-                signal = elems_pd_list[feature][elem_id]
-                signal_quantile = np.quantile(signal, quant, axis=0)
-                ax.plot(x, signal_quantile, label=elem_name)  # Plot some data on the axes.
-                ax.set_title(feature + ' - ' + 'Quantile:' + str(quant), fontsize=20)
-                ax.set_xlabel('Positions in windows', fontsize=15)  # Add an x-label to the axes.
-                ax.set_ylabel('Value', fontsize=15)  # Add a y-label to the axes.
-                ax.legend()
-        plt.tight_layout()
-        
-        plt.savefig(os.path.join(plot_path, 'non_b_types_quantile_' + str(quant) + '.png'))
-
-
-def plot_non_b_types_direction_quantiles():
-    import matplotlib.pyplot as plt
-    path = '/labs/Aguiar/non_bdna/annotations/windows/agg_transloc_signals/signals_df/translocation_df.csv'
-    df = pd.read_csv(path, index_col=0)
-    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Control']
-    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
-                     'Short Tandem Repeat', 'Z DNA', 'Control']
-    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
-    x = range(0, 100)
-    direction = ['same', 'opposite']
-    plot_path = '/labs/Aguiar/non_bdna/paper/plots'
-    cols = ['val_'+str(i) for i in range(100)]
-    for elem_id in range(len(elements)):
-        elem_name = elements_name[elem_id]
-        elem = elements[elem_id]
-        for dir in direction:
-            df_elem_dir = df[(df['label'] == elem_name) & (df['direction'] == dir)].reset_index(drop=True)
-            signal = df_elem_dir.loc[:, cols].to_numpy()
-            
-            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-            for quant in quantiles:
-                signal_quantile = np.quantile(signal, quant, axis=0)
-                ax.plot(x, signal_quantile, label='Quantile ' + str(quant))  # Plot some data on the axes.
-            ax.set_xlabel('Positions in windows', fontsize=15)  # Add an x-label to the axes.
-            ax.set_ylabel('Value', fontsize=15)  # Add a y-label to the axes.
-            ax.legend()
-            ax.set_title(elem_name + ' - ' + dir + ' - ', fontsize=20)
-            plt.tight_layout()
-            plt.savefig(os.path.join(plot_path, elem + '_' + dir + '.png'))
-
-
-def plot_non_b_types_direction_quantiles_vs_control():
-    import matplotlib.pyplot as plt
-    path = '/labs/Aguiar/non_bdna/annotations/windows/agg_transloc_signals/signals_df/translocation_df.csv'
+def plot_non_b_types_direction_quantiles_vs_control(path):
     df = pd.read_csv(path, index_col=0)
     elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
                 'Short_Tandem_Repeat', 'Z_DNA_Motif']
@@ -1035,70 +780,6 @@ def plot_non_b_types_direction_quantiles_vs_control():
             plt.tight_layout()
             plt.savefig(os.path.join(plot_path, elem + '_Control_' + dir + '.png'))
 
-
-def plot_non_b_types_direction_quantiles_vs_control_new_data():
-    import matplotlib.pyplot as plt
-    # main_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5_mean/original/outliers/centered_windows'
-    main_path = 'Data/windows/centered_windows'
-    # main_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows/original/complete_centered_windows'
-    # control_same_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5_mean/original/bdna/Control_Same_100_non_overlapping.npy'
-    # control_same_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows/original/Control_Same_100_non_overlapping.npy'
-    control_same_path = 'Data/windows/Control_Same_100_non_overlapping.npy'
-    
-    # control_opposite_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5_mean/original/bdna/Control_Opposite_100_non_overlapping.npy'
-    # control_opposite_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows/original/Control_Opposite_100_non_overlapping.npy'
-    control_opposite_path = 'Data/windows/Control_Opposite_100_non_overlapping.npy'
-    
-    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                'Short_Tandem_Repeat', 'Z_DNA_Motif']
-    elements_path = {nonb: os.path.join(main_path, nonb + '_centered.csv') for nonb in elements}
-    elements_name = ['A Phased Repeat', 'G Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
-                     'Short Tandem Repeat', 'Z DNA']
-    quantiles = [0.05, 0.25, 0.5, 0.75, 0.95]
-    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple' ]
-    x = range(0, 100)
-    direction = ['same', 'opposite']
-    direction_cols = {'same': ['forward_'+str(i) for i in range(100)], 'opposite': ['reverse_'+str(i) for i in range(100)]}
-    control_signals = {'same': np.load(control_same_path), 'opposite': np.load(control_opposite_path)}
-    direction_names = {'same': 'Forward', 'opposite': 'Reverse'}
-    # plot_path = '/labs/Aguiar/non_bdna/paper/plots/req5_mean'
-    plot_path = 'Figures/req5_mean'
-    
-    if not os.path.exists(plot_path):
-        os.mkdir(plot_path)
-    for elem_id in range(len(elements)):
-        elem_name = elements_name[elem_id]
-        elem = elements[elem_id]
-        df = pd.read_csv(elements_path[elem], index_col=0)
-        for dir in direction:
-            cols = direction_cols[dir]
-            signal = df.loc[:, cols].to_numpy()
-            control_signal = control_signals[dir]
-            fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-            for quant_id in range(len(quantiles)):
-                quant = quantiles[quant_id]
-                color = colors[quant_id]
-                signal_quantile = np.quantile(signal, quant, axis=0)
-                control_signal_quantile = np.quantile(control_signal, quant, axis=0)
-                ax.plot(x, signal_quantile, color=color, label=str(quant), linewidth=4)
-                ax.plot(x, control_signal_quantile, color=color, linestyle='--', linewidth=3)
-            # max_val = np.max(np.quantile(signal, 0.95, axis=0))
-            ax.set_xlabel('Position in Window', fontsize=27)
-            ax.set_ylabel('Translocation Time', fontsize=27)
-            # leg = plt.legend(loc=(1.03, 0.55), title="Quantile", prop={'size': 14},
-            #                  title_fontsize=15)
-            # ax.add_artist(leg)
-            # h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
-            # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
-            #            title="Structure", prop={'size': 14}, title_fontsize=15)
-            plt.setp(ax.get_xticklabels(), Fontsize=22)
-            plt.setp(ax.get_yticklabels(), Fontsize=22)
-            # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
-            # ax.set_ylim(top=max_val+0.00053)
-            ax.set_title(elem_name + ' ' + direction_names[dir], fontsize=20)
-            plt.tight_layout()
-            # plt.show()
-            plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dir] + '.png'))
 
 
 def make_r_script(data_path):
@@ -1239,8 +920,104 @@ def plot_experimental_one_method():
     plt.savefig(os.path.join(plot_path, 'IF.png'))
 
 
-def aggregate_results_exp():
-    main_path = 'D:/UCONN/nonBDNA/Data/methods_results'
+def plot_histogram(lst, name, save_path):
+    plt.cla()
+    plt.clf()
+    plt.close()
+    plt.hist(lst, bins=30)
+    plt.xlabel(name)
+    plt.ylabel('Count')
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_path, name + '.png'))
+
+
+def plot_roc_curve(fpr, tpr, roc_auc_score, dataset, method, nonb, save_path):
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    ax.plot(fpr, tpr, linewidth=4, label='ROC Curve')
+    plt.xlabel('False Positive Rate', fontsize=15)  # Add an x-label to the axes.
+    plt.ylabel('True Negative Rate', fontsize=15)  # Add a y-label to the axes.
+    ax.legend()
+    title = '{} \nROC-AUC: {:.4f}'.format(method, roc_auc_score)
+    plt.title(title, fontsize=15)
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_path, dataset + '_' + method + '_' + nonb + '_eval_ROC.png'))
+
+
+def plot_PR_curve(recall, precision, pr_auc, dataset, method, nonb, save_path):
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    ax.plot(recall, precision, linewidth=4, label='PR Curve')
+    plt.xlabel('Recall', fontsize=15)  # Add an x-label to the axes.
+    plt.ylabel('Precision', fontsize=15)  # Add a y-label to the axes.
+    ax.legend()
+    title = '{}\nPR-AUC: {:.4f}'.format(method, pr_auc)
+    plt.title(title, fontsize=15)
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_path, dataset + '_' + method + '_' + nonb + '_eval_PR.png'))
+
+
+def plot_results_roc_pr(results_pd, plot_path, plot_type):
+    """Plot roc or pr for sim data"""
+    # path = 'results/sim_IF/final_results_sim_IF.csv'
+    # results_pd = pd.read_csv(path, index_col=0)
+    filtereted_results_pd = results_pd[results_pd['tail'] == 'upper'].reset_index(drop=True)
+    train_sets = list(filtereted_results_pd['train_set'].unique())
+    windows = list(filtereted_results_pd['window_size'].unique())
+    # windows = [25, 50, 75, 100]
+    non_bs = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+              'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    for win_id, win in enumerate(windows):
+        for ts in train_sets:
+            thisdf = filtereted_results_pd[(filtereted_results_pd['window_size'] == win) &
+                                           (filtereted_results_pd['train_set'] == ts)].reset_index(drop=True)
+            labels = list(thisdf['label'].unique())
+            for label in labels:
+                lb_df = thisdf[thisdf['label'] == label].reset_index(drop=True)
+                nonb_ratios = list(lb_df['nonb_ratio'].unique())
+                
+                # if len(lb_df) < 19:
+                #     print(win, ts, label)
+                plot_name = ''
+                x_labeb = ''
+                y_labeb = ''
+                fig, ax = plt.subplots(1, figsize=(7, 7))
+                for nbr in nonb_ratios:
+                    lb_nbratio = lb_df[lb_df['nonb_ratio'] == nbr].reset_index(drop=True)
+                    if plot_type == 'ROC':
+                        x = list(lb_nbratio['fpr'])
+                        y = list(lb_nbratio['tpr'])
+                        plot_name = '_'.join([ts, label, str(win)]) + '_ROC_plot.png'
+                        x_labeb = 'FPR'
+                        y_labeb = 'TPR'
+                    elif plot_type == 'PR':
+                        x = list(lb_nbratio['recall'])
+                        y = list(lb_nbratio['precision'])
+                        plot_name = '_'.join([ts, label, str(win)]) + '_PR_plot.png'
+                        x_labeb = 'Recall'
+                        y_labeb = 'Precision'
+                    else:
+                        return
+                    # new_fpr, new_tpr = make_smooth(fpr, tpr, degree=3)
+                    ax.plot(x, y, linewidth=3, label='Nonb ratio: ' + str(nbr))
+                ax.set_xlabel(x_labeb, fontsize=13)  # Add an x-label to the axes.
+                ax.set_ylabel(y_labeb, fontsize=13)  # Add a y-label to the axes.
+                title = 'Window size: {}, \nTrained on: {}, \nTest on: {}'.format(win, ts, label)
+                ax.set_title(title, fontsize=13)
+                ax.legend(bbox_to_anchor=(1.1, 1.1))
+                plt.tight_layout()
+                # plt.show()
+                plt.savefig(os.path.join(plot_path, plot_name))
+    return
+
+def plot_sim(results_path, results_name):
+    results_sim_pd = collect_results(results_path, results_name)
+    methods_results_path = os.path.join(results_path, results_name)
+    plot_path = os.path.join(methods_results_path, 'plots')
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    plot_results_roc_pr(results_sim_pd, plot_path, 'ROC')
+    plot_results_roc_pr(results_sim_pd, plot_path, 'PR')
+
+def aggregate_results_exp(main_path):
     exp_results_path = os.path.join(main_path, 'exp')
     # exp_results = os.listdir(exp_results_path)
     
@@ -1352,8 +1129,7 @@ def plot_experimental_methods_comparison():
             plt.savefig(os.path.join(plot_path, 'exp_' + elem + '_' + tail_type + '.png'))
 
 
-def aggregate_results_sim():
-    main_path = 'D:/UCONN/nonBDNA/Data/methods_results'
+def aggregate_results_sim(main_path):
     exp_results_path = os.path.join(main_path, 'sim')
     # exp_results = os.listdir(exp_results_path)
     sel_cols = ['accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr', 'data', 'label', 'method']
@@ -1424,9 +1200,9 @@ def aggregate_results_sim():
     return results_df
 
 
-def plot_sim_comparison():
+def plot_sim_comparison(path):
     
-    df = aggregate_results_sim()
+    df = aggregate_results_sim(path)
     elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
                 'Short_Tandem_Repeat', 'Z_DNA_Motif']
     elements_name = ['A Phased Repeat', 'G-Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
@@ -1649,15 +1425,14 @@ def plot_classifiers_ismb1():
     classifiers_path = 'results/classifiers'
 
 
-def plot_roc():
-    results_sim = 'D:/UCONN/nonBDNA/results/classifiers/simulation'
+def plot_roc(results_sim_folder):
     out_liers = ['IF', 'LOF', 'SVM']
     classifiers = ['SVC', 'RF', 'GP', 'KNN', 'LR']
     # outfiles = [os.path.join(results_sim, name, 'final_results_' + name + '.csv') for name in os.listdir(results_sim)
     #            if 'sim' in name and any(ol in name for ol in out_liers)]
     needed_cols = ['dataset', 'method', 'label', 'nonb_ratio', 'fscore']
     needed_nonb_ratios = [0.05, 0.1, 0.25]
-    classifiles = [os.path.join(results_sim, name, 'final_results_' + name + '.csv') for name in os.listdir(results_sim)
+    classifiles = [os.path.join(results_sim_folder, name, 'final_results_' + name + '.csv') for name in os.listdir(results_sim_folder)
                    if 'sim' in name and any(cl in name for cl in classifiers)]
     cls = [pd.read_csv(f, index_col=0) for f in classifiles]
     all_classifiers = pd.concat(cls, ignore_index=True)
