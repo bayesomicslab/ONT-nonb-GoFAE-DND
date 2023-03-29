@@ -1485,3 +1485,493 @@ def plot_sim_comparison():
     # plt.show()
     
     plt.savefig(os.path.join(plot_path, 'sim_' + metric + '.png'))
+
+
+def plot_experimental_methods_comparison(path):
+    exp_folders = [os.path.join(path, name) for name in os.listdir(path) if
+                   'old' not in name and 'exp' in name and os.path.isdir(os.path.join(path, name))]
+    nonbs = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+             'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    
+    results_files = [os.path.join(f, elem, 'final_results.csv') for f in exp_folders for elem in os.listdir(f)
+                     if os.path.isdir(os.path.join(f, elem)) and any(nonb in elem for nonb in nonbs)]
+    results_pd_list = [pd.read_csv(file, index_col=0) for file in results_files if os.path.exists(file)]
+    results_pd = pd.concat(results_pd_list, axis=0, ignore_index=True)
+    plot_path = 'results/plots_exp'
+    tail_types = ['upper', 'lower']
+    
+    for tail_type in tail_types:
+        elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                    'Short_Tandem_Repeat', 'Z_DNA_Motif']
+        elements_name = ['A Phased Repeat', 'G-Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                         'Short Tandem Repeat', 'Z-DNA']
+        colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink']
+        
+        # ['tab:brown', 'tab:gray', 'tab:olive', 'tab:cyan']
+        results_pd = results_pd[results_pd['tail'] == 'upper'].reset_index(drop=True)
+        for elem_id in range(len(elements)):
+            elem_name = elements_name[elem_id]
+            elem = elements[elem_id]
+            df = results_pd[results_pd['label'] == elem].reset_index(drop=True)
+            plt.cla()
+            plt.close()
+            plt.clf()
+            fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+            methods = list(df['method'].unique())
+            # methods_colors = {'Isolation Forest': 'tab:blue', 'One Class SVM': 'tab:orange', 'GoFAE-COD': 'tab:green',
+            #                   'Outlier AE (64)': 'tab:red', 'Outlier AE (128)': 'tab:purple'}
+            methods_colors = {'IF': 'tab:blue', 'LOF': 'tab:orange', 'SVM': 'tab:green'}
+            for idx, method in enumerate(methods):
+                this_df = df[df['method'] == method].reset_index(drop=True)
+                tuples = list(zip(this_df.alpha, this_df.potential_nonb_counts))
+                fdrs = [i[0] for i in tuples]
+                n_nonb = [i[1] for i in tuples]
+                color = methods_colors[method]
+                ax.plot(fdrs, n_nonb, color=color, linewidth=3, marker='o', label=method)
+                # ax.scatter(fdrs, n_nonb, color=color, marker='o', label=method)
+            
+            ax.set_xlabel('FDR', fontsize=27)
+            ax.set_ylabel('Non-B DNA Count', fontsize=27)
+            # leg = plt.legend(loc=(0.9, 0.03), title='Method', prop={'size': 16}, title_fontsize=18)
+            # ax.add_artist(leg)
+            # h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
+            # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
+            #            title="Structure", prop={'size': 14}, title_fontsize=15)
+            plt.setp(ax.get_xticklabels(), Fontsize=22)
+            plt.setp(ax.get_yticklabels(), Fontsize=22)
+            # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
+            # ax.set_ylim(top=max_val+0.00053)
+            ax.set_title(elem_name + ', ' + tail_type, fontsize=20)
+            plt.legend()
+            plt.tight_layout()
+            # plt.show()
+            plt.savefig(os.path.join(plot_path, 'exp_' + elem + '_' + tail_type + '.png'))
+
+
+def plot_experimental_comparison_ismb(path):
+    cols = ['dataset', 'method', 'label', 'alpha', 'potential_nonb_counts']
+    
+    IF_final = 'results/beagle2/exp_IF/final_results_exp_IF.csv'
+    LOF_final = 'results/beagle2/exp_LOF/final_results_exp_LOF.csv'
+    SVM_final = 'results/beagle2/exp_SVM/final_results_exp_SVM.csv'
+    # GoFAE_DND_final = 'results/beagle2/exp_ourmodel/GoFAE-DND_final_results_0.35.csv'
+    # AE_final = 'results/beagle/exp_AE/AE_final_results_exp.csv'
+    
+    if_df = pd.read_csv(IF_final, index_col=0)
+    lof_df = pd.read_csv(LOF_final, index_col=0)
+    svm_df = pd.read_csv(SVM_final, index_col=0)
+    # gofae_df = pd.read_csv(GoFAE_DND_final, index_col=0)
+    # ae_df = pd.read_csv(AE_final, index_col=0)
+    
+    if_df = if_df[if_df['tail'] == 'lower'].reset_index(drop=True)
+    lof_df = lof_df[lof_df['tail'] == 'lower'].reset_index(drop=True)
+    svm_df = svm_df[svm_df['tail'] == 'lower'].reset_index(drop=True)
+    if_df = if_df.drop(['training_time', 'tail'], axis=1)
+    lof_df = lof_df.drop(['training_time', 'tail'], axis=1)
+    svm_df = svm_df.drop(['training_time', 'tail'], axis=1)
+    
+    # gofae_df['dataset'] = 'experimental'
+    # gofae_df['method'] = 'GoFAE-DND'
+    # gofae_df['dataset'] = 'experimental'
+    # ae_df['dataset'] = 'experimental'
+    
+    if_df['method'] = 'Isolation Forest'
+    lof_df['method'] = 'Local Outlier Factor'
+    svm_df['method'] = 'One Class SVM'
+    
+    if_df = if_df[cols]
+    lof_df = lof_df[cols]
+    # gofae_df = gofae_df[cols]
+    svm_df = svm_df[cols]
+    # ae_df = ae_df[cols]
+    
+    # gofae_df = gofae_df[['dataset', 'method', 'label', 'alpha', 'potential_nonb_counts']]
+    # if_df = if_df[['dataset', 'method', 'label', 'alpha', 'potential_nonb_counts']]
+    # lof_df = lof_df[['dataset', 'method', 'label', 'alpha', 'potential_nonb_counts']]
+    # svm_df = svm_df[['dataset', 'method', 'label', 'alpha', 'potential_nonb_counts']]
+    
+    # all_results = pd.concat([if_df, lof_df, svm_df, gofae_df, ae_df], ignore_index=True)
+    all_results = pd.concat([if_df, lof_df, svm_df], ignore_index=True)
+    all_results = all_results[all_results['alpha'] <= 0.5]
+    all_results.to_csv('results/beagle2/all_experimental.csv')
+    plot_path = 'results//beagle2/plots_exp'
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    elements = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
+                'Short_Tandem_Repeat', 'Z_DNA_Motif']
+    elements_name = ['A Phased Repeat', 'G-Quadruplex', 'Inverted Repeat', 'Mirror Repeat', 'Direct Repeat',
+                     'Short Tandem Repeat', 'Z-DNA']
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink']
+    methods_colors = {'Isolation Forest': 'tab:blue', 'One Class SVM': 'tab:orange', 'GoFAE-DND': 'tab:green',
+                      'AE': 'tab:red', 'Outlier AE (128)': 'tab:purple', 'Local Outlier Factor': 'tab:pink'}
+    markers_markers = {'Isolation Forest': 'd', 'One Class SVM': '*', 'GoFAE-DND': 'o',
+                       'AE': '|', 'Outlier AE (128)': 'x', 'Local Outlier Factor': 'P'}
+    
+    for elem_id in range(len(elements)):
+        elem_name = elements_name[elem_id]
+        elem = elements[elem_id]
+        df = all_results[all_results['label'] == elem].reset_index(drop=True)
+        plt.cla()
+        plt.close()
+        plt.clf()
+        fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+        methods = list(df['method'].unique())
+        
+        for idx, method in enumerate(methods):
+            this_df = df[df['method'] == method].reset_index(drop=True)
+            tuples = list(zip(this_df.alpha, this_df.potential_nonb_counts))
+            fdrs = [i[0] for i in tuples]
+            n_nonb = [i[1] for i in tuples]
+            color = methods_colors[method]
+            marker = markers_markers[method]
+            ax.plot(fdrs, n_nonb, color=color, linewidth=3, marker=marker, label=method, markersize=10, alpha=0.7)
+            # ax.scatter(fdrs, n_nonb, color=color, marker='o', label=method)
+        
+        ax.set_xlabel('FDR', fontsize=27)
+        ax.set_ylabel('Non-B DNA Count', fontsize=27)
+        # leg = plt.legend(loc=(0.9, 0.03), title='Method', prop={'size': 16}, title_fontsize=18)
+        # ax.add_artist(leg)
+        # h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
+        # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
+        #            title="Structure", prop={'size': 14}, title_fontsize=15)
+        plt.setp(ax.get_xticklabels(), Fontsize=22)
+        plt.setp(ax.get_yticklabels(), Fontsize=22)
+        # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
+        # ax.set_ylim(top=max_val+0.00053)
+        ax.set_title(elem_name, fontsize=20)
+        plt.legend()
+        plt.tight_layout()
+        # plt.show()
+        plt.savefig(os.path.join(plot_path, 'exp_' + elem + '.png'))
+
+
+def plot_classifiers_ismb1():
+    classifiers_path = 'results/classifiers'
+
+
+def plot_roc():
+    results_sim = 'D:/UCONN/nonBDNA/results/classifiers/simulation'
+    out_liers = ['IF', 'LOF', 'SVM']
+    classifiers = ['SVC', 'RF', 'GP', 'KNN', 'LR']
+    # outfiles = [os.path.join(results_sim, name, 'final_results_' + name + '.csv') for name in os.listdir(results_sim)
+    #            if 'sim' in name and any(ol in name for ol in out_liers)]
+    needed_cols = ['dataset', 'method', 'label', 'nonb_ratio', 'fscore']
+    needed_nonb_ratios = [0.05, 0.1, 0.25]
+    classifiles = [os.path.join(results_sim, name, 'final_results_' + name + '.csv') for name in os.listdir(results_sim)
+                   if 'sim' in name and any(cl in name for cl in classifiers)]
+    cls = [pd.read_csv(f, index_col=0) for f in classifiles]
+    all_classifiers = pd.concat(cls, ignore_index=True)
+
+
+def find_mask_and_genomic_positions_in_100_wins(win_start, win_end, motif):
+    ml = len(motif)
+    mask = np.ones(100)
+    if ml % 2 == 0:
+        a = ml / 2
+        b = 50 - a
+        motif_start = win_start + b
+        motif_end = win_end - b
+        mask[0:int(b)] = 0
+        mask[-int(b):] = 0
+    # ml%2 == 1: # motif length is odd
+    else:
+        a = np.floor(ml / 2)
+        b_start = 50 - (a + 1)
+        b_end = 50 - a
+        motif_start = win_start + b_start
+        motif_end = win_end - b_end
+        mask[0:int(b_start)] = 0
+        mask[-int(b_end):] = 0
+    return motif_start, motif_end, mask
+
+
+def prepare_sim_all_results_ismb():
+    alpha = 0.2
+    results_sim = 'results/final_results_ismb'
+    plot_path = os.path.join(results_sim, 'plots')
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    out_liers = ['IF', 'LOF', 'SVM']
+    classifiers = ['SVC', 'RF', 'GP', 'KNN', 'LR']
+    elements = ['G_Quadruplex_Motif', 'Short_Tandem_Repeat']
+    elements_name = ['G Quadruplex', 'Short Tandem Repeat']
+    methods_colors = {'GoFAE-DND': 'tab:red', 'Isolation Forest': 'tab:blue', 'One Class SVM': 'tab:green',
+                      'Local Outlier Factor': 'tab:orange',
+                      'Isolation Forest (bdna)': '#acc2d9', 'One Class SVM (bdna)': 'black',
+                      'Local Outlier Factor (bdna)': '#388004', 'GP': 'tab:purple', 'KNN': '#DBB40C',
+                      'LR': 'tab:cyan', 'RF': 'tab:brown', 'SVC': 'tab:pink'}
+    
+    method_order = {'GoFAE-DND': 0, 'Isolation Forest': 1, 'Isolation Forest (bdna)': 2, 'Local Outlier Factor': 3,
+                    'Local Outlier Factor (bdna)': 4, 'One Class SVM': 5, 'One Class SVM (bdna)': 6,
+                    'KNN': 7, 'LR': 8, 'RF': 9, 'SVC': 10, 'GP': 11}
+    # outlier_order = {'GoFAE-DND': 0, 'Isolation Forest': 1, 'Isolation Forest (bdna)': 2, 'Local Outlier Factor': 3,
+    #                  'Local Outlier Factor (bdna)': 4, 'One Class SVM': 5, 'One Class SVM (bdna)': 6}
+    #
+    # classifiers_order = {'KNN': 7, 'LR': 8, 'RF': 9, 'SVC': 10, 'GP': 11}
+    
+    needed_cols = ['dataset', 'method', 'label', 'nonb_ratio', 'alpha', 'fscore']
+    needed_cols_classifiers = ['dataset', 'method', 'label', 'nonb_ratio', 'fscore']
+    needed_nonb_ratios = [0.05, 0.1, 0.25]
+    classifiles = [os.path.join(results_sim, name, 'final_results_' + name + '.csv') for name in os.listdir(results_sim)
+                   if 'sim' in name and any(cl in name for cl in classifiers)]
+    cls = [pd.read_csv(f, index_col=0) for f in classifiles]
+    all_classifiers = pd.concat(cls, ignore_index=True)
+    all_classifiers = all_classifiers[needed_cols_classifiers]
+    all_classifiers = all_classifiers[all_classifiers['nonb_ratio'].isin(needed_nonb_ratios)].reset_index(drop=True)
+    all_classifiers.to_csv(os.path.join(results_sim, 'simulation_results_classifiers_methods.csv'))
+    
+    IF_final = os.path.join(results_sim, 'sim_IF/final_results_sim_IF.csv')
+    LOF_final = os.path.join(results_sim, 'sim_LOF/final_results_sim_LOF.csv')
+    SVM_final = os.path.join(results_sim, 'sim_SVM/final_results_sim_SVM.csv')
+    IF_bdna_final = os.path.join(results_sim, 'sim_IF_bdna/final_results_sim_IF_bdna.csv')
+    LOF_bdna_final = os.path.join(results_sim, 'sim_LOF_bdna/final_results_sim_LOF_bdna.csv')
+    SVM_bdna_final = os.path.join(results_sim, 'sim_SVM_bdna/final_results_sim_SVM_bdna.csv')
+    all_paths = [IF_final, LOF_final, SVM_final, IF_bdna_final, LOF_bdna_final, SVM_bdna_final]
+    all_dfs = [pd.read_csv(path, index_col=0) for path in all_paths]
+    dfs = pd.concat(all_dfs).reset_index(drop=True)
+    dfs = dfs[dfs['tail'] == 'lower'].reset_index(drop=True)
+    dfs = dfs[dfs['function'] == 'decision_function'].reset_index(drop=True)
+    dfs = dfs.drop(['duration', 'tail', 'function'], axis=1)
+    dfs.loc[dfs['method'] == 'IF', 'method'] = 'Isolation Forest'
+    dfs.loc[dfs['method'] == 'LOF', 'method'] = 'Local Outlier Factor'
+    dfs.loc[dfs['method'] == 'SVM', 'method'] = 'One Class SVM'
+    dfs.loc[dfs['method'] == 'IF_bdna', 'method'] = 'Isolation Forest (bdna)'
+    dfs.loc[dfs['method'] == 'LOF_bdna', 'method'] = 'Local Outlier Factor (bdna)'
+    dfs.loc[dfs['method'] == 'SVM_bdna', 'method'] = 'One Class SVM (bdna)'
+    dfs = dfs[needed_cols]
+    
+    gofae_path = os.path.join(results_sim, 'sim_GoFAE-DND')
+    gofae_files = [pd.read_csv(os.path.join(gofae_path, name), index_col=0) for name in os.listdir(gofae_path) if
+                   '.csv' in name]
+    gofae_df = pd.concat(gofae_files, ignore_index=True)
+    gofae_df = gofae_df.rename(columns={'nonb_type': 'label'})
+    gofae_df = gofae_df.drop(['upper'], axis=1)
+    gofae_df = gofae_df[needed_cols]
+    
+    all_out = pd.concat([dfs, gofae_df], ignore_index=True)
+    all_out = all_out[(all_out['alpha'] > alpha - 0.01) & (all_out['alpha'] < alpha + 0.01)].reset_index(drop=True)
+    
+    all_out = all_out.drop(['alpha'], axis=1)
+    all_out = all_out[needed_cols_classifiers]
+    all_out['dataset'] = 'sim'
+    all_out = all_out.sort_values(by=['dataset', 'method', 'label', 'nonb_ratio'])
+    all_out = all_out[all_out['nonb_ratio'].isin(needed_nonb_ratios)].reset_index(drop=True)
+    # all_out = all_out.fillna(0)
+    # all_out = all_out.dropna()
+    all_out.to_csv(os.path.join(results_sim, 'simulation_results_outlier_methods.csv'))
+    everything = pd.concat([all_out, all_classifiers], ignore_index=True)
+    everything = everything[everything['nonb_ratio'].isin(needed_nonb_ratios)].reset_index(drop=True)
+    everything = everything.sort_values(by=['dataset', 'method', 'label', 'nonb_ratio']).reset_index(drop=True)
+    everything.to_csv(os.path.join(results_sim, 'all_simulation_results.csv'))
+    
+    everything['method_order'] = everything['method'].apply(lambda x: method_order[x])
+    everything = everything.sort_values(by='method_order', ascending=True)
+    everything = everything.drop(['method_order'], axis=1).reset_index(drop=True)
+    
+    nonb_ratios = [0.05, 0.1, 0.25]
+    
+    outlier_order = {'Isolation Forest': 0, 'Local Outlier Factor': 1, 'One Class SVM': 2, 'GoFAE-DND': 3}
+    classifiers_order = {'KNN': 4, 'GP': 5, 'RF': 6, 'LR': 7, 'SVC': 8}
+    barWidth = 0.4
+    for elem_id in range(2):
+        elem_name = elements_name[elem_id]
+        elem = elements[elem_id]
+        plt.cla()
+        plt.close()
+        plt.clf()
+        fig, ax = plt.subplots(1, 1, figsize=(10, 4))
+        x = 0
+        ax.axhline(0.1, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.2, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.3, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.4, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.5, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.6, color="gray", linestyle='--', zorder=0)
+        # ax.axhline(0.7, color="gray", linestyle='--', zorder=0)
+        # ax.axhline(0.8, color="gray", linestyle='--', zorder=0)
+        for nbr in nonb_ratios[:-1]:
+            
+            for me in list(classifiers_order.keys()):
+                this_df = everything[(everything['method'] == me) & (everything['label'] == elem) & (
+                        everything['nonb_ratio'] == nbr)].reset_index(drop=True)
+                y = this_df.fscore.values[0]
+                plt.bar(x, y, color=methods_colors[me], width=barWidth, hatch='//', edgecolor='black')
+                x += 0.5
+            
+            x += 0.5
+            
+            for me in list(outlier_order.keys()):
+                this_df = everything[(everything['method'] == me) & (everything['label'] == elem) & (
+                        everything['nonb_ratio'] == nbr)].reset_index(drop=True)
+                y = this_df.fscore.values[0]
+                plt.bar(x, y, color=methods_colors[me], width=barWidth, edgecolor='black')
+                x += 0.5
+            
+            x += 2
+        
+        for nbr in [nonb_ratios[-1]]:
+            
+            for me in list(classifiers_order.keys()):
+                this_df = everything[(everything['method'] == me) & (everything['label'] == elem) & (
+                        everything['nonb_ratio'] == nbr)].reset_index(drop=True)
+                y = this_df.fscore.values[0]
+                plt.bar(x, y, color=methods_colors[me], width=barWidth, edgecolor='black', hatch='//', label=me)
+                x += 0.5
+            
+            x += 0.5
+            
+            for me in list(outlier_order.keys()):
+                this_df = everything[(everything['method'] == me) & (everything['label'] == elem) & (
+                        everything['nonb_ratio'] == nbr)].reset_index(drop=True)
+                y = this_df.fscore.values[0]
+                plt.bar(x, y, color=methods_colors[me], width=barWidth, edgecolor='black', label=me)
+                x += 0.5
+        
+        # leg = plt.legend(loc=(1.03, 0.50), title="Quantile", prop={'size': 14}, title_fontsize=15)
+        # ax.add_artist(leg)
+        # h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
+        # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
+        #            title="Structure", prop={'size': 14}, title_fontsize=15)
+        
+        # plt.xlabel('Non-B ratios', fontsize=27, labelpad=30)
+        plt.xlabel('Non-B ratios', fontsize=27)
+        plt.xticks([x / 6 - 1, x / 2, 5 * x / 6 + 0.5], [str(i) for i in nonb_ratios])
+        plt.ylabel('F1 Score', fontsize=27)
+        plt.setp(ax.get_xticklabels(), Fontsize=22)
+        plt.setp(ax.get_yticklabels(), Fontsize=22)
+        # plt.legend(labels = ['KNN', 'GP', 'RF', 'LR', 'SVC'], loc=(1.03, 0.2), title="Classifiers",
+        #            prop={'size': 14}, title_fontsize=15)
+        # plt.legend(labels = ['Isolation Forest', 'Local Outlier Factor', 'One Class SVM', 'GoFAE-DND'],
+        #            loc=(1.03, 0.2), title="Novelty Detectors",
+        #            prop={'size': 14}, title_fontsize=15)
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score.tiff'), dpi=1200)
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score.png'), dpi=1200)
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score.tif'), dpi=1200)
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score.pdf'), dpi=1200)
+        
+        # plt.savefig(os.path.join(plot_path, 'leg2.png'), dpi=1200)
+
+
+def prepare_sim_outliers_results_ismb():
+    alpha = 0.2
+    results_sim = 'results/final_results_ismb'
+    plot_path = os.path.join(results_sim, 'plots')
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    out_liers = ['IF', 'LOF', 'SVM']
+    elements = ['G_Quadruplex_Motif', 'Short_Tandem_Repeat']
+    elements_name = ['G Quadruplex', 'Short Tandem Repeat']
+    methods_colors = {'GoFAE-DND': 'tab:red', 'Isolation Forest': 'tab:blue', 'One Class SVM': 'tab:green',
+                      'Local Outlier Factor': 'tab:orange',
+                      'Isolation Forest (bdna)': '#acc2d9', 'One Class SVM (bdna)': 'black',
+                      'Local Outlier Factor (bdna)': '#388004', 'GP': 'tab:purple', 'KNN': '#DBB40C',
+                      'LR': 'tab:cyan', 'RF': 'tab:brown', 'SVC': 'tab:pink'}
+    
+    outlier_order = {'Isolation Forest': 0, 'Isolation Forest (bdna)': 1, 'Local Outlier Factor': 2, 'GoFAE-DND': 3,
+                     'Local Outlier Factor (bdna)': 4, 'One Class SVM': 5, 'One Class SVM (bdna)': 6}
+    
+    needed_cols = ['dataset', 'method', 'label', 'nonb_ratio', 'alpha', 'fscore']
+    
+    outlier_order = {'Isolation Forest': 0, 'Local Outlier Factor': 1, 'One Class SVM': 2, 'GoFAE-DND': 3}
+    classifiers_order = {'KNN': 4, 'LR': 5, 'RF': 6, 'SVC': 7, 'GP': 8}
+    
+    nonb_ratios = [0.05, 0.1, 0.25]
+    
+    IF_final = os.path.join(results_sim, 'sim_IF/final_results_sim_IF.csv')
+    LOF_final = os.path.join(results_sim, 'sim_LOF/final_results_sim_LOF.csv')
+    SVM_final = os.path.join(results_sim, 'sim_SVM/final_results_sim_SVM.csv')
+    IF_bdna_final = os.path.join(results_sim, 'sim_IF_bdna/final_results_sim_IF_bdna.csv')
+    LOF_bdna_final = os.path.join(results_sim, 'sim_LOF_bdna/final_results_sim_LOF_bdna.csv')
+    SVM_bdna_final = os.path.join(results_sim, 'sim_SVM_bdna/final_results_sim_SVM_bdna.csv')
+    all_paths = [IF_final, LOF_final, SVM_final, IF_bdna_final, LOF_bdna_final, SVM_bdna_final]
+    all_dfs = [pd.read_csv(path, index_col=0) for path in all_paths]
+    dfs = pd.concat(all_dfs).reset_index(drop=True)
+    dfs = dfs[dfs['tail'] == 'lower'].reset_index(drop=True)
+    dfs = dfs[dfs['function'] == 'decision_function'].reset_index(drop=True)
+    dfs = dfs.drop(['duration', 'tail', 'function'], axis=1)
+    dfs.loc[dfs['method'] == 'IF', 'method'] = 'Isolation Forest'
+    dfs.loc[dfs['method'] == 'LOF', 'method'] = 'Local Outlier Factor'
+    dfs.loc[dfs['method'] == 'SVM', 'method'] = 'One Class SVM'
+    dfs.loc[dfs['method'] == 'IF_bdna', 'method'] = 'Isolation Forest (bdna)'
+    dfs.loc[dfs['method'] == 'LOF_bdna', 'method'] = 'Local Outlier Factor (bdna)'
+    dfs.loc[dfs['method'] == 'SVM_bdna', 'method'] = 'One Class SVM (bdna)'
+    dfs = dfs[needed_cols]
+    
+    gofae_path = os.path.join(results_sim, 'sim_GoFAE-DND')
+    gofae_files = [pd.read_csv(os.path.join(gofae_path, name), index_col=0) for name in os.listdir(gofae_path) if
+                   '.csv' in name]
+    gofae_df = pd.concat(gofae_files, ignore_index=True)
+    gofae_df = gofae_df.rename(columns={'nonb_type': 'label'})
+    gofae_df = gofae_df.drop(['upper'], axis=1)
+    gofae_df = gofae_df[needed_cols]
+    
+    all_out = pd.concat([dfs, gofae_df], ignore_index=True)
+    all_out = all_out[(all_out['alpha'] > alpha - 0.01) & (all_out['alpha'] < alpha + 0.01)].reset_index(drop=True)
+    # all_out = all_out.drop(['alpha'], axis=1)
+    all_out['dataset'] = 'sim'
+    all_out = all_out.sort_values(by=['dataset', 'method', 'label', 'nonb_ratio']).reset_index(drop=True)
+    all_out.to_csv(os.path.join(results_sim, 'simulation_results_outlier_methods.csv'))
+    everything = all_out
+    
+    barWidth = 0.3
+    for elem_id in range(2):
+        elem_name = elements_name[elem_id]
+        elem = elements[elem_id]
+        plt.cla()
+        plt.close()
+        plt.clf()
+        fig, ax = plt.subplots(1, 1, figsize=(10, 4))
+        x = 0
+        ax.axhline(0.1, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.2, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.3, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.4, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.5, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.6, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.7, color="gray", linestyle='--', zorder=0)
+        ax.axhline(0.8, color="gray", linestyle='--', zorder=0)
+        # ax.axhline(0.9, color="gray", linestyle='--', zorder=0)
+        
+        for nbr in nonb_ratios[:-1]:
+            print(nbr)
+            for me in list(outlier_order.keys()):
+                this_df = everything[(everything['method'] == me) & (everything['label'] == elem) & (
+                        everything['nonb_ratio'] == nbr)].reset_index(drop=True)
+                y = this_df.fscore.values[0]
+                print(nbr, me, y)
+                plt.bar(x, y, color=methods_colors[me], width=barWidth, edgecolor='black')
+                x += 0.3
+            
+            x += 0.6
+        
+        for nbr in [nonb_ratios[-1]]:
+            print(nbr)
+            for me in list(outlier_order.keys()):
+                this_df = everything[(everything['method'] == me) & (everything['label'] == elem) & (
+                        everything['nonb_ratio'] == nbr)].reset_index(drop=True)
+                y = this_df.fscore.values[0]
+                print(nbr, me, y)
+                plt.bar(x, y, color=methods_colors[me], width=barWidth, edgecolor='black', label=me)
+                x += 0.3
+        
+        # plt.xlabel('Non-B ratios', fontsize=27, labelpad=30)
+        plt.xlabel('Non-B ratios', fontsize=27)
+        # plt.xlabel("...", labelpad=20)
+        plt.xticks([2 * 0.3 - 0.1, 8 * 0.3 - 0.1, 14 * 0.3 - 0.1], [str(i) for i in nonb_ratios])
+        plt.ylabel('F1 Score', fontsize=27)
+        plt.setp(ax.get_xticklabels(), Fontsize=22)
+        plt.setp(ax.get_yticklabels(), Fontsize=22)
+        plt.legend(loc=2, prop={'size': 17})
+        # plt.annotate('Outliers', xy=(0, 2), xycoords='data', xytext=(1.5, 1.5),
+        #              textcoords='offset points')
+        plt.tight_layout()
+        
+        # plt.show()
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.tiff'), dpi=1200)
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.png'), dpi=1200)
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.tif'), dpi=1200)
+        plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.pdf'), dpi=1200)
+
+

@@ -12,9 +12,17 @@ The DNA conformations that we study here are the following:
 
 
 <p align="center">
+
   <img width=50% height=50% src="https://user-images.githubusercontent.com/45966768/197122406-3e85c638-2a80-4101-be27-5b4a13506739.PNG">
+
 </p>
 
+
+[//]: # (<p align="center">)
+
+[//]: # (![Kiku]&#40;figures/dna_conformation.PNG&#41;)
+
+[//]: # (</p>)
 
 ## Reads Processing:
  

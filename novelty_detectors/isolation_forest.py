@@ -106,7 +106,7 @@ def train_if_nonb_exp(inp):
     for tail in ['upper', 'lower']:
         for alpha in list(np.arange(0.05, 0.55, 0.05)):
 
-            sel_test_bed, non_b_count = evaluation_exp2(test, test_bed, null_dist_scores, eval_scores, alpha, tail)
+            sel_test_bed, non_b_count = evaluation_exp(test, test_bed, null_dist_scores, eval_scores, alpha, tail)
             if any([math.isclose(alpha, num) for num in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]]):
                 print(method, tail, alpha, len(sel_test_bed))
                 if len(sel_test_bed) > 0:
