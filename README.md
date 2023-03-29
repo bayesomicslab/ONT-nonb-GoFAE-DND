@@ -57,7 +57,7 @@ nanopore (Loman et al., [2015](https://www.nature.com/articles/nmeth.3444)).
 
 
 Subsequently, we [re-squiggle](https://nanoporetech.github.io/tombo/resquiggle.html) the FAST5  output of Albacore using [Tombo](https://nanoporetech.github.io/tombo/tutorials.html), 
-a statistical method that detects base modifications in nanopore current signal (Stoiber et al., [2017]((https://www.biorxiv.org/content/10.1101/094672v2.abstract))). 
+a statistical method that detects base modifications in nanopore current signal (Stoiber et al., [2017](https://www.biorxiv.org/content/10.1101/094672v2.abstract)). 
 Briefly, the re-squiggling algorithm segments the raw current signal into events and calls nucleotide bases using the current and a reference genome for
 correcting spurious variation ([Figures, top](https://user-images.githubusercontent.com/45966768/228670741-a137b6bc-c7af-464e-a50e-489cc1f1fb19.PNG) and [middle](https://user-images.githubusercontent.com/45966768/228649149-8bdf2bf2-043e-4a58-bc6a-ec0264b991b5.png)).
 
