@@ -101,7 +101,7 @@ Find motif free regions.
 Compute translocation signal on the non-overlapping windows.
 
 
-## GoFAE method:
+## GoFAE-DND method:
 
 <p align="center">
 
