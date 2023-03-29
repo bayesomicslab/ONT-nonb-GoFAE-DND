@@ -34,7 +34,7 @@ In SMRT technology, the sequencing speed is determined by polymerization
 (Liu et al., [2018](https://genome.cshlp.org/content/28/12/1767.short)).
 However, ONT devices record a measurement of current at a predefined sampling rate and then aggregate the measurements 
 into *strides*, which are the smallest length of measurement accepted by the basecaller and represent a single base translocation
-([A nice introduction to the concept of events and strides](http://simpsonlab.github.io/2015/04/08/eventalign/)).
+([An introduction to the concept of events and strides](http://simpsonlab.github.io/2015/04/08/eventalign/)).
 
 ## Reads Processing:
 <p align="center">
