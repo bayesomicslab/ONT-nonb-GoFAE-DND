@@ -1,280 +1,234 @@
+import time
+import sys
 from utils import *
-from sklearn.svm import OneClassSVM
-from sklearn.metrics import confusion_matrix
 from multiprocessing import Pool
+import math
 
 
-def build_svm(train_x, train_y, test_x, test_y, kern):
-    measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
-    results = pd.DataFrame(columns=measures + ['data', 'kernel'], index=[0, 1])
-    # svm_model = OneClassSVM(kernel=kern, verbose=True, max_iter=100).fit(train_x)
-    svm_model = OneClassSVM(verbose=True, cache_size=100000, max_iter=100).fit(train_x)
-    train_y_pred = svm_model.predict(train_x)
-    train_y_pred[train_y_pred == 1] = 0
-    train_y_pred[train_y_pred == -1] = 1
-    tr_tn, tr_fp, tr_fn, tr_tp = confusion_matrix(train_y, train_y_pred).ravel()
-    tr_accuracy, tr_precision, tr_recall, tr_fscore, tr_fpr, tr_fnr, tr_fdr = compute_accuracy_metrics(tr_tn, tr_fp, tr_fn, tr_tp)
-    results.loc[0, :] = tr_tn, tr_fp, tr_fn, tr_tp, tr_accuracy, tr_precision, tr_recall, tr_fscore, tr_fpr, tr_fnr, tr_fdr, 'train', kern
-    test_y_pred = svm_model.predict(test_x)
-    test_y_pred[test_y_pred == 1] = 0
-    test_y_pred[test_y_pred == -1] = 1
-    te_tn, te_fp, te_fn, te_tp = confusion_matrix(test_y, test_y_pred).ravel()
-    te_accuracy, te_precision, te_recall, te_fscore, te_fpr, te_fnr, tr_fdr = compute_accuracy_metrics(te_tn, te_fp, te_fn, te_tp)
-    results.loc[1, :] = te_tn, te_fp, te_fn, te_tp, te_accuracy, te_precision, te_recall, te_fscore, te_fpr, te_fnr, tr_fdr, 'test', kern
-    return results
+def one_class_svm_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
+
+    if not os.path.exists(results_path):
+        os.mkdir(results_path)
+    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Z_DNA_Motif', 'Mirror_Repeat', 'Direct_Repeat',
+                   'Short_Tandem_Repeat', 'Inverted_Repeat']
+    method = 'SVM'
+    if dataset == 'exp':
+
+        results_name = '_'.join([dataset, method])
+        methods_results_path = os.path.join(results_path, results_name)
+        if not os.path.exists(methods_results_path):
+            os.mkdir(methods_results_path)
+        
+        win_sizes = [50]
+        
+        inputs = [[nonb, method, dataset, wins, folder, methods_results_path] for nonb in non_b_types
+                  for wins in win_sizes]
+        pool = Pool(thread)
+        pool.map(train_svm_nonb_exp, inputs)
+        # for inp in inputs:
+        #     train_svm_nonb_exp(inp)
+        
+        results_exp_pd = collect_results(results_path, results_name)
+    
+    if dataset == 'sim':
+    
+        results_name = '_'.join([dataset, method])
+        methods_results_path = os.path.join(results_path, results_name)
+        if not os.path.exists(methods_results_path):
+            os.mkdir(methods_results_path)
+        
+        # win_sizes = [25, 50, 75, 100]
+        win_sizes = [50]  # [25, 50, 75, 100]
+        nonb_ratios = [0.05, 0.1, 0.25]
+        inputs = [[nonb, method, dataset, wins, n_bdna, n_nonb, nbr, data_path,
+                   methods_results_path] for nonb in non_b_types for wins in win_sizes for nbr in nonb_ratios]
+        pool = Pool(thread)
+        pool.map(train_svm_nonb_sim, inputs)
+        # for inp in inputs:
+        #     print(inp[0], inp[1], inp[2], inp[3])
+        #     train_if_nonb_sim(inp)
+        results_sim_pd = collect_results(results_path, results_name)
+        # plot_sim(results_path, results_name)
 
 
 def train_svm_nonb_exp(inp):
+    model_sel = True
+    nonb, method, dataset, winsize, folder, main_folder = inp
+    result_name = '_'.join([dataset, method, nonb])
+    save_path = os.path.join(main_folder, result_name)
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+    print('--------------- Model:', nonb)
+    print('Folder ' + save_path + ' created.')
     
-    global_train, global_val, global_test, save_path, nonb, method = inp
-    # for nonb in non_b_types:
-    
-    final_results_df = pd.DataFrame(columns=['method', 'label', 'alpha', 'tail', 'potential_nonb_counts'],
-                                    index=range(19*2))
-    counter = 0
-    
-    train = global_train[(global_train['label'] == nonb)|(global_train['label'] == 'bdna')].reset_index(drop=True)
-    val = global_val[(global_val['label'] == nonb)|(global_val['label'] == 'bdna')].reset_index(drop=True)
-    test = global_test[(global_test['label'] == nonb)|(global_test['label'] == 'bdna')].reset_index(drop=True)
-    
-    train.loc[train['label'] == 'bdna', 'label'] = 0
-    train.loc[train['label'] == nonb, 'label'] = 1
-    
-    val.loc[val['label'] == 'bdna', 'label'] = 0
-    val.loc[val['label'] == nonb, 'label'] = 1
-    
-    test.loc[test['label'] == 'bdna', 'label'] = 0
-    test.loc[test['label'] == nonb, 'label'] = 1
-    
-    convert_dict = {'label': int}
-    
-    train = train.astype(convert_dict)
-    val = val.astype(convert_dict)
-    test = test.astype(convert_dict)
-    
-    train_x = train.drop(['label'], axis=1).to_numpy()
-    train_y = train[['label']].to_numpy()
-    
-    val_x = val.drop(['label'], axis=1).to_numpy()
-    val_y = val[['label']].to_numpy()
-    
-    # test_x = test.drop(['label'], axis=1).to_numpy()
-    # test_y = test[['label']].to_numpy()
-    
-    # kernel_list = ['linear', 'poly', 'rbf', 'sigmoid']
-    #
-    # for ker in kernel_list:
-    #     print(nonb, ker)
-    #     this_results_df = build_svm(train_x, train_y, val_x, val_y, ker)
-    #     this_results_df['label'] = nonb
-    #     results = results.append(this_results_df).reset_index(drop=True)
-    #     results.to_csv(os.path.join(save_path, method + '_exp_cv.csv'))
-    #
-    # # find the best params in validation data
-    # test_results = results[results['data'] == 'test']
-    # min_fdr = np.min(test_results['fdr'])
-    # best_row = test_results[test_results['fdr'] == min_fdr]
-    #
-    # # select the best param:
-    # best_kernel = best_row['kernel'].values[0]
-    #
-    # train with new train (train + val) and the best param
-    train = train.append(val).reset_index(drop=True)
-    train_x = train.drop(['label'], axis=1).to_numpy()
-    print(nonb, len(train))
-    
-    svm_model = OneClassSVM(verbose=True, cache_size=10000, max_iter=100).fit(train_x)
-    
-    # test only using the test set:
-    test_bdna = test[test['label'] == 0].reset_index(drop=True)
-    test_bdna_x = test_bdna.drop(['label'], axis=1).to_numpy()
-    # test_bdna_y = test_bdna[['label']].to_numpy()
-    
-    test_nonb = test[test['label'] == 1].reset_index(drop=True)
-    test_nonb_x = test_nonb.drop(['label'], axis=1).to_numpy()
-    
-    null_dist_scores = svm_model.decision_function(test_bdna_x)
-    eval_scores = svm_model.decision_function(test_nonb_x)
-    
-    plot_histogram(null_dist_scores, nonb + '_' + method + '_test_bdna_scores', save_path)
-    plot_histogram(eval_scores, nonb + '_' + method + '_test_nonb_scores', save_path)
+    train, val, test, train_bed, val_bed, test_bed = load_data3(folder, nonb)
     
     alpha_list = np.arange(0.05, 1, 0.05)
-    emp_dist, indices = compute_empirical(null_dist_scores, eval_scores, tail='upper')
-    plot_histogram(emp_dist, nonb + '_' + method + '_p_values_upper', save_path)
+    # alpha_list = np.arange(0.01, 1, 0.01)
+    tails = ['upper', 'lower']
     
-    for alpha in alpha_list:
-        val_emp, _ = FDR_BHP(emp_dist, alpha=alpha)
-        final_results_df.loc[counter, :] = method, nonb, alpha, 'upper', val_emp
-        counter += 1
-    
-    emp_dist, indices = compute_empirical(null_dist_scores, eval_scores, tail='lower')
-    plot_histogram(emp_dist, nonb + '_' + method + '_p_values_lower', save_path)
-    
-    for alpha in alpha_list:
-        val_emp, _ = FDR_BHP(emp_dist, alpha=alpha)
-        final_results_df.loc[counter, :] = method, nonb, alpha, 'lower', val_emp
-        counter += 1
-    
-    final_results_df.to_csv(os.path.join(save_path, method + '_' + nonb +'_final_results.csv'))
-
-def train_svm_nonb_sim(inp):
-    global_train, global_val, global_test, save_path, nonb, method = inp
-    # for nonb in non_b_types:
-    
-    measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
-    final_results_df = pd.DataFrame(columns=measures + ['data', 'kernel', 'label', 'method'])
-    train = global_train[(global_train['label'] == nonb)|(global_train['label'] == 'bdna')].reset_index(drop=True)
-    val = global_val[(global_val['label'] == nonb)|(global_val['label'] == 'bdna')].reset_index(drop=True)
-    test = global_test[(global_test['label'] == nonb)|(global_test['label'] == 'bdna')].reset_index(drop=True)
-
+    final_results_df = pd.DataFrame(columns=['dataset', 'method', 'label', 'alpha', 'tail', 'potential_nonb_counts',
+                                             'training_time'], index=range(len(alpha_list) * len(tails)))
+    counter = 0
     train.loc[train['label'] == 'bdna', 'label'] = 0
     train.loc[train['label'] == nonb, 'label'] = 1
-
     val.loc[val['label'] == 'bdna', 'label'] = 0
     val.loc[val['label'] == nonb, 'label'] = 1
-
     test.loc[test['label'] == 'bdna', 'label'] = 0
     test.loc[test['label'] == nonb, 'label'] = 1
-
     convert_dict = {'label': int}
-
     train = train.astype(convert_dict)
     val = val.astype(convert_dict)
     test = test.astype(convert_dict)
-
+    
+    train, val = make_new_train_validation(train, val, ratio=5)
     train_x = train.drop(['label'], axis=1).to_numpy()
-    train_y = train[['label']].to_numpy()
-
-    val_x = val.drop(['label'], axis=1).to_numpy()
-    val_y = val[['label']].to_numpy()
-
-    test_x = test.drop(['label'], axis=1).to_numpy()
-    test_y = test[['label']].to_numpy()
-
-    # kernel_list = ['linear', 'poly', 'rbf', 'sigmoid']
-    #
-    # for ker in kernel_list:
-    #     print(nonb, ker)
-    #     this_results_df = build_svm(train_x, train_y, val_x, val_y, ker)
-    #     this_results_df['label'] = nonb
-    #     results = results.append(this_results_df).reset_index(drop=True)
-    #     results.to_csv(os.path.join(save_path, method + '_cv_sim_data.csv'))
-    #
-    # # find the best params in validation data
-    # test_results = results[results['data'] == 'test']
-    # min_fdr = np.min(test_results['fdr'])
-    # best_row = test_results[test_results['fdr'] == min_fdr]
-    #
-    # # select the best param:
-    # best_kernel = best_row['kernel'].values[0]
-
-    # train with new train (train + val) and the best param
-    train = train.append(val).reset_index(drop=True)
-    train_x = train.drop(['label'], axis=1).to_numpy()
-    train_y = train[['label']].to_numpy()
-
-    print(nonb, len(train))
-    best_results_df = build_svm(train_x, train_y, test_x, test_y, 'linear')
-    best_results_df['label'] = nonb
-    best_results_df['method'] = method
-
-    final_results_df = final_results_df.append(best_results_df).reset_index(drop=True)
-    final_results_df.to_csv(os.path.join(save_path, method + '_' + nonb + '_final_results.csv'))
-
-
-
-def one_class_svm_with_cross_val_experimental_data():
-    method = 'SVM_50'
-    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                   'Short_Tandem_Repeat', 'Z_DNA_Motif']
-    # beagle
-    # non_b_path = '/home/mah19006/projects/nonBDNA/data/prepared_windows_req5/dataset/outliers/centered_windows'
-    # bdna_path = '/home/mah19006/projects/nonBDNA/data/prepared_windows_req5/dataset/bdna'
-    bdna_path = '/home/mah19006/projects/nonBDNA/data/experimental_50'
-    non_b_path = '/home/mah19006/projects/nonBDNA/data/experimental_50'
     
-    # local
-    # non_b_path = 'Data/experimental'
-    # bdna_path = 'Data/experimental'
+    print(nonb, '# training samples:', len(train))
+    if model_sel:
+        print('Model selection ...')
+        best_param = svm_hyperparam_tuning(train, val, save_path)
+        start = time.time()
+        svm_model = OneClassSVM(kernel=best_param, cache_size=10000, max_iter=10000).fit(train_x)
+        duration = round(time.time() - start, 3)
+    else:
+        start = time.time()
+        svm_model = OneClassSVM(cache_size=10000, max_iter=10000).fit(train_x)
+        duration = round(time.time() - start, 3)
     
-    # uchc =
-    # bdna_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5/dataset/bdna'
-    # non_b_path = '/labs/Aguiar/non_bdna/annotations/vae_windows/prepared_windows_req5/dataset/outliers/centered_windows'
+    null_dist_scores, eval_scores = calc_null_eval_distributions(test, svm_model)
     
+    print('Evaluation ... ')
     
-    # beagle
-    methods_results_path = '/home/mah19006/projects/nonBDNA/data/methods_results'
-    
-    #local
-    # methods_results_path = 'Data/methods_results'
-    
-    # UCHC
-    # methods_results_path = '/labs/Aguiar/non_bdna/methods'
-    
-    if not os.path.exists(methods_results_path):
-        os.mkdir(methods_results_path)
-    save_path = os.path.join(methods_results_path, method)
+    for tail in ['upper', 'lower']:
+        for alpha in list(np.arange(0.05, 0.55, 0.05)):
+            sel_test_bed, non_b_count = evaluation_exp2(test, test_bed, null_dist_scores, eval_scores, alpha, tail)
+            if any([math.isclose(alpha, num) for num in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]]):
+                print(method, tail, alpha, len(sel_test_bed))
+                if len(sel_test_bed) > 0:
+                    sel_test_bed.to_csv(os.path.join(save_path, 'test_alpha_{}_{}.bed'.format(alpha, tail)), sep='\t',
+                                        index=False, header=False)
+            final_results_df.loc[counter, :] = 'experimental', method, nonb, alpha, tail, non_b_count, duration
+            counter += 1
+            final_results_df.to_csv(os.path.join(save_path, 'final_results.csv'))
+    print(os.path.join(save_path, 'final_results.csv'), ' saved.')
+
+
+def train_svm_nonb_sim(inp):
+    model_sel = True
+    nonb, method, dataset, winsize, n_bdna, n_nonb, nonb_ratio, folder, main_folder = inp
+    print('-----------Model: ', nonb, nonb_ratio)
+    result_name = '_'.join([dataset, method, nonb, str(nonb_ratio)])
+    save_path = os.path.join(main_folder, result_name)
     if not os.path.exists(save_path):
         os.mkdir(save_path)
+    print('Folder ' + save_path + ' created.')
+    global_train, global_val, global_test = load_data2(folder, winsize, n_bdna, n_nonb, nonb_ratio=nonb_ratio)
     
-    # measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
-    # results = pd.DataFrame(columns=measures + ['data', 'kernel', 'label'])
+    # alpha_list = np.arange(0.01, 1, 0.01)
+    alpha_list = np.arange(0.05, 1, 0.05)
+    tails = ['upper', 'lower']
+    final_results_df = pd.DataFrame(columns=['dataset', 'method', 'label', 'window_size', 'nonb_ratio', 'alpha', 'tail',
+                                             'tp', 'tn', 'fp', 'fn', 'precision', 'recall', 'fpr', 'tpr', 'fscore',
+                                             'duration', 'function'], index=range(len(alpha_list) * len(tails) * 2))
+    counter = 0
+    train = global_train[(global_train['label'] == nonb) | (global_train['label'] == 'bdna')].reset_index(drop=True)
+    val = global_val[(global_val['label'] == nonb) | (global_val['label'] == 'bdna')].reset_index(drop=True)
+    test = global_test[(global_test['label'] == nonb) | (global_test['label'] == 'bdna')].reset_index(drop=True)
+    
+    train.loc[train['label'] == nonb, 'label'] = 1
+    train.loc[train['label'] == 'bdna', 'label'] = 0
+    
+    val.loc[val['label'] == nonb, 'label'] = 1
+    val.loc[val['label'] == 'bdna', 'label'] = 0
+    
+    test.loc[test['label'] == nonb, 'label'] = 1
+    test.loc[test['label'] == 'bdna', 'label'] = 0
+    
+    convert_dict = {'label': int}
+    
+    train = train.astype(convert_dict)
+    val = val.astype(convert_dict)
+    test = test.astype(convert_dict)
+    
+    train_x = train.drop(['label', 'true_label'], axis=1).to_numpy()
+    
+    # hyperparam tunning:
+    print(nonb, '# training samples:', len(train))
+    if model_sel:
+        print('Model selection ...')
+        best_param = svm_hyperparam_tuning(train, val, save_path)
+        start = time.time()
+        svm_model = OneClassSVM(kernel=best_param, cache_size=10000, max_iter=1000).fit(train_x)
+        duration = round(time.time() - start, 3)
+    else:
+        start = time.time()
+        svm_model = OneClassSVM(cache_size=10000, max_iter=1000).fit(train_x)
+        duration = round(time.time() - start, 3)
+    
+    print('Compute distributions ... ')
+    null_dist_scores, eval_scores = calc_null_eval_distributions(test, svm_model)
+    null_dist_scores_scores, eval_scores_scores = calc_null_eval_distributions_scores(test, svm_model)
+    plot_histogram(null_dist_scores, method + '_' + nonb + '_test_bdna_decision_function', save_path)
+    plot_histogram(eval_scores, method + '_' + nonb + '_test_nonb_decision_function', save_path)
+    plot_histogram(null_dist_scores_scores, method + '_' + nonb + '_test_bdna_scores', save_path)
+    plot_histogram(eval_scores_scores, method + '_' + nonb + '_test_nonb_scores', save_path)
+    print('Evaluation ... ')
+    for tail in tails:
+        for alpha in alpha_list:
+            # print(tail, alpha)
+            p_values, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores, eval_scores, alpha, tail)
+            plot_histogram(p_values, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'decision_p_values']),
+                           save_path)
+            precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
+            final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
+                                               fn, precision, recall, fpr, tpr, fscore, duration, 'decision_function'
+            counter += 1
+            p_values_2, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores_scores, eval_scores_scores, alpha, tail)
+            plot_histogram(p_values_2, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'scores_p_values']),
+                           save_path)
+            precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
+            final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
+                                               fn, precision, recall, fpr, tpr, fscore, duration, 'scores'
+            counter += 1
+    final_results_df.to_csv(os.path.join(save_path, 'final_results.csv'))
 
-    global_train, global_val, global_test = load_data(bdna_path, non_b_path)
-    # global_train, global_val, global_test = load_data_with_downsample_bdna(bdna_path, non_b_path)
-    print(len(global_train))
-
-    inputs = [[global_train, global_val, global_test, save_path, nonb, method] for nonb in non_b_types]
-    pool = Pool(7)
-    pool.map(train_svm_nonb_exp, inputs)
-    
-
-def one_class_svm_with_cross_val_synthetic_data():
-    method = 'SVM_50_sim'
-    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
-                   'Short_Tandem_Repeat', 'Z_DNA_Motif']
-    # beagle
-    # non_b_path = '/mnt/research/aguiarlab/proj/nonBDNA/data/exponential_simulated_data'
-    # bdna_path = '/mnt/research/aguiarlab/proj/nonBDNA/data/exponential_simulated_data/'
-
-    non_b_path = '/mnt/research/aguiarlab/proj/nonBDNA/data/sim_50'
-    bdna_path = '/home/mah19006/projects/nonBDNA/data/sim_50'
-    # local
-    # non_b_path = 'Data/simulated'
-    # bdna_path = 'Data/simulated'
-
-    # # uchc
-    # non_b_path = '/labs/Aguiar/non_bdna/annotations/exponential_simulated_data/dataset'
-    # bdna_path = '/labs/Aguiar/non_bdna/annotations/exponential_simulated_data/dataset'
-    
-    # beagle
-    methods_results_path = '/mnt/research/aguiarlab/proj/nonBDNA/data/methods_results'
-    
-    # local
-    # methods_results_path = 'Data/methods_results'
-    
-    # uchc
-    # methods_results_path = '/labs/Aguiar/non_bdna/methods'
-
-    if not os.path.exists(methods_results_path):
-        os.mkdir(methods_results_path)
-    save_path = os.path.join(methods_results_path, method)
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-    
-    # measures = ['tn', 'fp', 'fn', 'tp', 'accuracy', 'precision', 'recall', 'f-score', 'fpr', 'fnr', 'fdr']
-    # results = pd.DataFrame(columns=measures + ['data', 'kernel', 'label'])
-    #
-    # final_results_df = pd.DataFrame(columns=measures + ['data', 'kernel', 'label', 'method'])
-    # global_train, global_val, global_test = load_data(bdna_path, non_b_path)
-    global_train, global_val, global_test = load_data_with_downsample_bdna(bdna_path, non_b_path)
-    inputs = [[global_train, global_val, global_test, save_path, nonb, method] for nonb in non_b_types]
-    pool = Pool(7)
-    pool.map(train_svm_nonb_sim, inputs)
-    
 
 if __name__ == '__main__':
+    if '-d' in sys.argv:
+        dataset = sys.argv[sys.argv.index('-d') + 1]
+    else:
+        # dataset = 'exp', 'sim'
+        dataset = ''
     
-    one_class_svm_with_cross_val_experimental_data()
-    # one_class_svm_with_cross_val_synthetic_data()
+    if '-f' in sys.argv:
+        data_path = sys.argv[sys.argv.index('-f') + 1]
+    else:
+        data_path = ''
+
+    
+    if '-r' in sys.argv:
+        results_path = sys.argv[sys.argv.index('-r') + 1]
+    else:
+        results_path = ''
+
+    
+    if '-t' in sys.argv:
+        thread = int(sys.argv[sys.argv.index('-t') + 1])
+    else:
+        thread = 1
+    
+    if '-nb' in sys.argv:
+        n_nonb = int(sys.argv[sys.argv.index('-nb') + 1])
+    else:
+        n_nonb = 20_000
+    
+    # total number of bdna simulated
+    if '-b' in sys.argv:
+        n_bdna = int(sys.argv[sys.argv.index('-b') + 1])
+    else:
+        n_bdna = 200_000
+    
+    one_class_svm_model(dataset, data_path, results_path, n_bdna, n_nonb, thread)
+
+
