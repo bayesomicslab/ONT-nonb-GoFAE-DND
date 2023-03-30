@@ -83,7 +83,7 @@ For each position on the Tombo-mapped reads, we compute the time duration in sec
 ## Prepare the windows:
 
 ### Step 1:
-Extract motifs postions from [non B DNA DB](https://nonb-abcc.ncifcrf.gov/apps/site/default).
+Extract motifs postions from [non-B DNA DB](https://nonb-abcc.ncifcrf.gov/apps/site/default).
 
 ### Step 2: 
 Fix windows of length x around motifs.
