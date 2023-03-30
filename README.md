@@ -10,7 +10,7 @@ deviates from the canonical double helix. Non-B DNA play an important role in ba
 and are associated with genomic instability, gene regulation, and oncogenesis. Experimental methods are
 low-throughput and can detect only a limited set of non-B DNA structures, while computational methods
 rely on non-B DNA base motifs, which are necessary but not sufficient indicators of non-B structures.
-The DNA conformations that we study here are the following:
+The [DNA conformations](https://user-images.githubusercontent.com/45966768/228634198-7f7b219d-f7bd-4272-86d9-ad3097a080a0.PNG) that we study here are the following:
 
 
 <p align="center">
