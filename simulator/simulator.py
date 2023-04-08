@@ -516,9 +516,6 @@ def simulate_split_nonb_poly_d2(n_nonb, s_path, st):
     df_te_param.to_csv(os.path.join(s_path, non_b + '_centered_test_params.csv'))
 
 
-
-
-
 if __name__ == '__main__':
     # total number of nonb simulated
     if '-nb' in sys.argv:
@@ -551,4 +548,4 @@ if __name__ == '__main__':
     
     # Plot
     plot_functions(save_path)
-    plot_function_5samples(save_path)
+    # plot_function_5samples(save_path)
