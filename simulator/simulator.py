@@ -529,10 +529,10 @@ if __name__ == '__main__':
     else:
         n_bdna = 1000000
 
-    if '-std' in sys.argv:
-        noise_std = int(sys.argv[sys.argv.index('-std') + 1])
-    else:
-        noise_std = 0.1
+    # if '-std' in sys.argv:
+    #     noise_std = int(sys.argv[sys.argv.index('-std') + 1])
+    # else:
+    #     noise_std = 0.1
     win_size = 100
     save_path = 'Data/simulated_data'
 
