@@ -1,5 +1,6 @@
 import time
 import sys
+sys.path.append('../')
 from utils import *
 from multiprocessing import Pool
 import math
@@ -9,11 +10,11 @@ def one_class_svm_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
 
     if not os.path.exists(results_path):
         os.mkdir(results_path)
-    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Z_DNA_Motif', 'Mirror_Repeat', 'Direct_Repeat',
-                   'Short_Tandem_Repeat', 'Inverted_Repeat']
+
     method = 'SVM'
     if dataset == 'exp':
-
+        non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Z_DNA_Motif', 'Mirror_Repeat', 'Direct_Repeat',
+                       'Short_Tandem_Repeat', 'Inverted_Repeat']
         results_name = '_'.join([dataset, method])
         methods_results_path = os.path.join(results_path, results_name)
         if not os.path.exists(methods_results_path):
@@ -31,7 +32,7 @@ def one_class_svm_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
         results_exp_pd = collect_results(results_path, results_name)
     
     if dataset == 'sim':
-    
+        non_b_types = ['G_Quadruplex_Motif', 'Short_Tandem_Repeat']
         results_name = '_'.join([dataset, method])
         methods_results_path = os.path.join(results_path, results_name)
         if not os.path.exists(methods_results_path):

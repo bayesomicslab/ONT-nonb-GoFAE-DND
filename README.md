@@ -150,6 +150,8 @@ for G-quadruples and Short Tandem Repeat.
   python3 svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
   ```
 
+#### 3. Run classifiers:
+
 
 
 ## GoFAE-DND method:
