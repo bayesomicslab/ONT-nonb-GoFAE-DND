@@ -152,6 +152,15 @@ for G-quadruples and Short Tandem Repeat.
 
 #### 3. Run classifiers:
 
+```
+cd ../classifiers
+python3 -W ignore svc.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+python3 -W ignore random_forest.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+python3 -W ignore nearest_neighbors.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+python3 -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+```
+
 
 
 ## GoFAE-DND method:
