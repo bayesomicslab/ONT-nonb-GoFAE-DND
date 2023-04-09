@@ -143,7 +143,7 @@ Compute translocation signal on the non-overlapping windows.
 2. Run novelty detection methods:
 
   ```
-  cd novelty_detectors
+  cd ../novelty_detectors
   python3 isolation_forest.py -f '../simulated_data/' -r 'results/' -nb 20000 -b 200000
   ```
 
