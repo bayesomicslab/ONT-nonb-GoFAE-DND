@@ -161,6 +161,13 @@ python3 -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../resu
 python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
 ```
 
+#### 4. Compare the methods: (Reproduce Fig 6 and S4):
+
+```
+cd ../
+python3 plottings.py
+```
+
 
 
 ## GoFAE-DND method:
