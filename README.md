@@ -129,22 +129,25 @@ Find motif free regions.
 Compute translocation signal on the non-overlapping windows.
 
 
-## Simulation
+### Simulation
 
-1. Make simulated windows.
+#### 1. Make simulated windows:
 
-    This is an example of command that simulate
-    $100,000$ B-DNA and $1,000$ non-B DNA windows 
-    for G-quadruples and Short Tandem Repeat.
+This is an example of command that simulate
+100,000 B-DNA and 1,000 non-B DNA windows 
+for G-quadruples and Short Tandem Repeat.
 
-    ```simulation
+
      ~$ python3 simulator.py -nb 10000 -b 1000000 
-    ```
-2. Run novelty detection methods:
+
+
+#### 2. Run novelty detection methods:
 
   ```
   cd ../novelty_detectors
-  python3 isolation_forest.py -f '../simulated_data/' -r 'results/' -nb 20000 -b 200000
+  python3 isolation_forest.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
+  python3 local_outlier_factor.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
+  python3 svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
   ```
 
 
