@@ -1,0 +1,5 @@
+Total number of simulations: 100 
+Alpha Level: 0.10 
+Mean Critical Value: 0.9939 
+Std Critical Value: 0.0000 
+Time was 1.07 minutes 

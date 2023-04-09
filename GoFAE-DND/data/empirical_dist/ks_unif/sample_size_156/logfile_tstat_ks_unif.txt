@@ -1,0 +1,2 @@
+Total number of simulations: 100 
+Time was 1.14 minutes 

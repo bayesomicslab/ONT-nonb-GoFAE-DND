@@ -1,0 +1,4 @@
+Total number of simulations: 100000 
+Number of projections: 50 
+Projecting from: 50 --> 1 
+Time was 16.97 minutes 
