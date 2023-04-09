@@ -2,7 +2,6 @@ import os
 import time
 import sys
 sys.path.append('../')
-print(sys.path)
 import math
 from utils import *
 from multiprocessing import Pool
