@@ -1462,7 +1462,7 @@ def find_mask_and_genomic_positions_in_100_wins(win_start, win_end, motif):
 
 def prepare_sim_all_results_ismb():
     alpha = 0.2
-    results_sim = 'results/final_results_ismb'
+    results_sim = 'results'
     plot_path = os.path.join(results_sim, 'plots')
     if not os.path.exists(plot_path):
         os.mkdir(plot_path)
@@ -1621,10 +1621,10 @@ def prepare_sim_all_results_ismb():
         #            prop={'size': 14}, title_fontsize=15)
         
         plt.tight_layout()
-        plt.savefig(os.path.join(plot_path, elem + 'F1_score.tiff'), dpi=1200)
+        # plt.savefig(os.path.join(plot_path, elem + 'F1_score.tiff'), dpi=1200)
         plt.savefig(os.path.join(plot_path, elem + 'F1_score.png'), dpi=1200)
-        plt.savefig(os.path.join(plot_path, elem + 'F1_score.tif'), dpi=1200)
-        plt.savefig(os.path.join(plot_path, elem + 'F1_score.pdf'), dpi=1200)
+        # plt.savefig(os.path.join(plot_path, elem + 'F1_score.tif'), dpi=1200)
+        # plt.savefig(os.path.join(plot_path, elem + 'F1_score.pdf'), dpi=1200)
         
         # plt.savefig(os.path.join(plot_path, 'leg2.png'), dpi=1200)
 
@@ -1750,3 +1750,6 @@ def prepare_sim_outliers_results_ismb():
         # plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.pdf'), dpi=1200)
 
 
+if __name__ == '__main__':
+    prepare_sim_outliers_results_ismb()
+    prepare_sim_all_results_ismb()
