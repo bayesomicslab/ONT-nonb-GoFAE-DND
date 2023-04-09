@@ -36,7 +36,10 @@ However, ONT devices record a measurement of current at a predefined sampling ra
 into *strides*, which are the smallest length of measurement accepted by the basecaller and represent a single base translocation
 ([An introduction to the concept of events and strides](http://simpsonlab.github.io/2015/04/08/eventalign/)).
 
+
 ## Reads Processing:
+
+
 <p align="center">
 
   <img width=60% height=60% src="https://user-images.githubusercontent.com/45966768/228649149-8bdf2bf2-043e-4a58-bc6a-ec0264b991b5.png">
@@ -100,6 +103,17 @@ Find motif free regions.
 ### Step 6:
 Compute translocation signal on the non-overlapping windows.
 
+
+## Simulation
+
+
+This is an example of command that simulate
+$1,000,000$ B-DNA and $10,000$ non-B DNA windows 
+for G-quadruples and Short Tandem Repeat.
+
+```simulation
+~$ simulator.py -nb 10000 -b 1000000 
+```
 
 ## GoFAE-DND method:
 
