@@ -4,6 +4,7 @@ sys.path.append('../')
 from utils import *
 from multiprocessing import Pool
 import math
+from plottings import *
 
 
 def local_outlier_factor(dataset, folder, results_path, n_bdna, n_nonb, thread):

@@ -4,7 +4,7 @@ import time
 import math
 from utils import *
 from multiprocessing import Pool
-# from plottings import plot_histogram
+from plottings import *
 
 def isolation_forest_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
 
