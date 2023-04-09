@@ -1,5 +1,6 @@
 import time
 import sys
+sys.path.append('../')
 from utils import *
 from multiprocessing import Pool
 

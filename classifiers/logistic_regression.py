@@ -1,5 +1,6 @@
 import time
 import sys
+sys.path.append('../')
 from utils import *
 from multiprocessing import Pool
 
@@ -9,7 +10,6 @@ def logistic_regression_model(dataset, folder, results_path, n_bdna, n_nonb, thr
     if not os.path.exists(results_path):
         os.mkdir(results_path)
     
-
     non_b_types = ['G_Quadruplex_Motif', 'Short_Tandem_Repeat']
 
     method = 'LR'
@@ -103,7 +103,6 @@ def train_lr_nonb_sim(inp):
     evaluate_classifiers(lr_model, test_x, test_y_true, dataset, method, nonb, nonb_ratio, save_path, winsize,
                          duration)
     
-
 
 if __name__ == '__main__':
     if '-d' in sys.argv:
