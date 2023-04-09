@@ -1,18 +1,17 @@
 import os
 import time
 import sys
+sys.path.append('../')
+print(sys.path)
 import math
 from utils import *
 from multiprocessing import Pool
 # from plottings import plot_histogram
 
 def isolation_forest_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
-    # results_path = '/home/mah19006/projects/nonBDNA/data/methods_results'
-    # results_path = '/labs/Aguiar/non_bdna/methods_results'
+
     if not os.path.exists(results_path):
         os.mkdir(results_path)
-    #
-  # , ALL
 
     method = 'IF'
     

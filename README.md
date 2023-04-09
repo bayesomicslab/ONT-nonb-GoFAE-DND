@@ -140,7 +140,12 @@ Compute translocation signal on the non-overlapping windows.
     ```simulation
      ~$ python3 simulator.py -nb 10000 -b 1000000 
     ```
-2. 
+2. Run novelty detection methods:
+
+  ```
+  cd novelty_detectors
+  python3 isolation_forest.py -f '../simulated_data/' -r 'results/' -nb 20000 -b 200000
+  ```
 
 
 
