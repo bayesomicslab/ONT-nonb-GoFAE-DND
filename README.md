@@ -129,7 +129,7 @@ Find motif free regions.
 Compute translocation signal on the non-overlapping windows.
 
 
-### Simulation
+## Simulation
 
 #### 1. Make simulated windows:
 
