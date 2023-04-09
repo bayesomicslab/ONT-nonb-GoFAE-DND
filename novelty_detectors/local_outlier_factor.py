@@ -11,8 +11,7 @@ def local_outlier_factor(dataset, folder, results_path, n_bdna, n_nonb, thread):
 
     if not os.path.exists(results_path):
         os.mkdir(results_path)
-    #
-   
+
     method = 'LOF'
     if dataset == 'exp':
         non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Inverted_Repeat', 'Mirror_Repeat', 'Direct_Repeat',
