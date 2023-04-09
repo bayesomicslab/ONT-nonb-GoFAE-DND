@@ -91,8 +91,8 @@ def plot_functions(folder):
             h = [plt.plot([], [], color="gray", linestyle=ls, linewidth=3)[0] for ls in ['-', '--']]
             plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
                        title="Structure", prop={'size': 14}, title_fontsize=15)
-            plt.setp(ax.get_xticklabels(), Fontsize=13)
-            plt.setp(ax.get_yticklabels(), Fontsize=13)
+            # plt.setp(ax.get_xticklabels(), Fontsize=13)
+            # plt.setp(ax.get_yticklabels(), Fontsize=13)
             # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
             # ax.set_ylim(top=max_val+0.00053)
             ax.set_title(elem_name + ' ' + direction_names[dire], fontsize=20)
@@ -154,8 +154,8 @@ def plot_function_5samples(folder):
             # plt.legend(handles=h, labels=['Non-B DNA', 'Control'], loc=(1.03, 0.85),
             #            title="Structure", prop={'size': 14}, title_fontsize=15)
             plt.legend()
-            plt.setp(ax.get_xticklabels(), Fontsize=13)
-            plt.setp(ax.get_yticklabels(), Fontsize=13)
+            # plt.setp(ax.get_xticklabels(), Fontsize=13)
+            # plt.setp(ax.get_yticklabels(), Fontsize=13)
             # ax.text(40, max_val+0.0001, direction_names[dir], fontsize=25, bbox={'alpha': 0, 'pad': 2})
             # ax.set_ylim(top=max_val+0.00053)
             ax.set_title(elem_name + ' ' + direction_names[dire], fontsize=20)
@@ -211,8 +211,8 @@ def plot_exp_data_5samples():
             leg = plt.legend(loc=(1.03, 0.50), title="Quantile", prop={'size': 14}, title_fontsize=15)
             ax.add_artist(leg)
             plt.legend()
-            plt.setp(ax.get_xticklabels(), Fontsize=13)
-            plt.setp(ax.get_yticklabels(), Fontsize=13)
+            # plt.setp(ax.get_xticklabels(), Fontsize=13)
+            # plt.setp(ax.get_yticklabels(), Fontsize=13)
             ax.set_title(elem + ' ' + direction_names[dire], fontsize=20)
             plt.tight_layout()
             # plt.show()
