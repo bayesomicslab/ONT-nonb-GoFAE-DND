@@ -53,12 +53,12 @@ into *strides*, which are the smallest length of measurement accepted by the bas
        (Or run the following script in the script folder.)
         
         ```
-        sh download.sh
+        $ sh download.sh
         ```
 
   3) Clone the github repository
 
-       ``` git clone https://github.com/bayesomicslab/ONT-nonb-GoFAE-DND.git```
+       ``` $ git clone https://github.com/bayesomicslab/ONT-nonb-GoFAE-DND.git```
 
 
 
@@ -80,7 +80,7 @@ nanopore (Loman et al., [2015](https://www.nature.com/articles/nmeth.3444)).
 #### [Albacore Basecalling](http://porecamp.github.io/2017/basecalling.html):
 
 ```Albacore
-~$ read_fast5_basecaller.py -f FLO-PRO002 -k SQK-LSK109 --input $path/na12878/fast5/single/ --save_path $path/na12878/fast5/albacore_single/ --output_format fastq,fast5 -t 48 --recursive --config r941_450bps_linear_prom.cfg
+ $ read_fast5_basecaller.py -f FLO-PRO002 -k SQK-LSK109 --input $path/na12878/fast5/single/ --save_path $path/na12878/fast5/albacore_single/ --output_format fastq,fast5 -t 48 --recursive --config r941_450bps_linear_prom.cfg
 ```
 
 
@@ -102,7 +102,7 @@ For each position on the Tombo-mapped reads, we compute the time duration in sec
 #### [Tombo re-squiggle](https://nanoporetech.github.io/tombo/resquiggle.html):
 
 ```Tombo
-~$ tombo resquiggle $path/workspace/pass/ hg38.fa --dna --overwrite --basecall-group Basecall_1D_001 --include-event-stdev --failed-reads-filename $path/workspace/pass/tombo_failed_reads.txt --processes 48
+$ tombo resquiggle $path/workspace/pass/ hg38.fa --dna --overwrite --basecall-group Basecall_1D_001 --include-event-stdev --failed-reads-filename $path/workspace/pass/tombo_failed_reads.txt --processes 48
 ```
 
 
@@ -138,34 +138,34 @@ This is an example of command that simulate
 for G-quadruples and Short Tandem Repeat.
 
 
-     ~$ python3 simulator.py -nb 10000 -b 1000000 
+     $ python3 simulator.py -nb 10000 -b 1000000 
 
 
 #### 2. Run novelty detection methods:
 
   ```
-  cd ../novelty_detectors
-  python3 isolation_forest.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
-  python3 local_outlier_factor.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
-  python3 svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
+  $ cd ../novelty_detectors
+  $ python3 isolation_forest.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
+  $ python3 local_outlier_factor.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
+  $ python3 svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
   ```
 
 #### 3. Run classifiers:
 
 ```
-cd ../classifiers
-python3 -W ignore svc.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-python3 -W ignore random_forest.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-python3 -W ignore nearest_neighbors.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-python3 -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ cd ../classifiers
+$ python3 -W ignore svc.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python3 -W ignore random_forest.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python3 -W ignore nearest_neighbors.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python3 -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
 ```
 
 #### 4. Compare the methods: (Reproduce Fig 6 and S4):
 
 ```
-cd ../
-python3 plottings.py
+$ cd ../
+$ python3 plottings.py
 ```
 
 
