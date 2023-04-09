@@ -99,9 +99,9 @@ def plot_functions(folder):
             plt.tight_layout()
             # plt.show()
             plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dire] + '.png'), dpi=1200)
-            plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dire] + '.tif'), dpi=1200)
-            plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dire] + '.tiff'), dpi=1200)
-            plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dire] + '.pdf'), dpi=1200)
+            # plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dire] + '.tif'), dpi=1200)
+            # plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dire] + '.tiff'), dpi=1200)
+            # plt.savefig(os.path.join(plot_path, elem + '_Control_' + direction_names[dire] + '.pdf'), dpi=1200)
 
 
 def plot_function_5samples(folder):
