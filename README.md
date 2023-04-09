@@ -108,12 +108,15 @@ Compute translocation signal on the non-overlapping windows.
 
 
 This is an example of command that simulate
-$1,000,000$ B-DNA and $10,000$ non-B DNA windows 
+$100,000$ B-DNA and $1,000$ non-B DNA windows 
 for G-quadruples and Short Tandem Repeat.
 
 ```simulation
-~$ simulator.py -nb 10000 -b 1000000 
+~$ simulator.py -nb 1000 -b 100000 
 ```
+
+
+
 
 ## GoFAE-DND method:
 
