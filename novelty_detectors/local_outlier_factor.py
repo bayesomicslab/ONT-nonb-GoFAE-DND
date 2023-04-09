@@ -170,25 +170,25 @@ def train_lof_nonb_sim(inp):
     print('Compute distributions ... ')
     null_dist_scores, eval_scores = calc_null_eval_distributions(test, lof_model)
     null_dist_scores_scores, eval_scores_scores = calc_null_eval_distributions_scores(test, lof_model)
-    plot_histogram(null_dist_scores, method + '_' + nonb + '_test_bdna_decision_function', save_path)
-    plot_histogram(eval_scores, method + '_' + nonb + '_test_nonb_decision_function', save_path)
-    plot_histogram(null_dist_scores_scores, method + '_' + nonb + '_test_bdna_scores', save_path)
-    plot_histogram(eval_scores_scores, method + '_' + nonb + '_test_nonb_scores', save_path)
+    # plot_histogram(null_dist_scores, method + '_' + nonb + '_test_bdna_decision_function', save_path)
+    # plot_histogram(eval_scores, method + '_' + nonb + '_test_nonb_decision_function', save_path)
+    # plot_histogram(null_dist_scores_scores, method + '_' + nonb + '_test_bdna_scores', save_path)
+    # plot_histogram(eval_scores_scores, method + '_' + nonb + '_test_nonb_scores', save_path)
     print('Evaluation ... ')
     
     for tail in tails:
         for alpha in alpha_list:
             # print(tail, alpha)
             p_values, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores, eval_scores, alpha, tail)
-            plot_histogram(p_values, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'decision_p_values']),
-                           save_path)
+            # plot_histogram(p_values, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'decision_p_values']),
+            #                save_path)
             precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
             final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
                                                fn, precision, recall, fpr, tpr, fscore, duration, 'decision_function'
             counter += 1
             p_values_2, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores_scores, eval_scores_scores, alpha, tail)
-            plot_histogram(p_values_2, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'scores_p_values']),
-                           save_path)
+            # plot_histogram(p_values_2, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'scores_p_values']),
+            #                save_path)
             precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
             final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
                                                fn, precision, recall, fpr, tpr, fscore, duration, 'scores'
