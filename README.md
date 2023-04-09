@@ -140,8 +140,18 @@ for G-quadruples and Short Tandem Repeat.
 
      $ python3 simulator.py -nb 10000 -b 1000000 
 
+#### 2. Run GoFAE-DND on simulated data:
+All python dependencies for the GoFAE-DND are in [`gofaednd_env.yml`](gofaednd_env.yml)
 
-#### 2. Run novelty detection methods:
+```
+$ cd GoFAE-DND/gofaednd
+$ conda env create -f gofaednd_env.yml
+$ conda activate gofaednd_env
+$ python3 Main.py --simulated --sim_data_path=../simulated_data/ --config=output_folder --nonb_type=G_Quadruplex_Motif --nonb_ratio=0.1 --n_z=64 --projections=64 --epochs=25 --fdr_level=0.2 --discriminitive_weight=35 --lambda_alpha=0.5 
+```
+
+
+#### 3. Run novelty detection methods:
 
   ```
   $ cd ../novelty_detectors
@@ -150,7 +160,7 @@ for G-quadruples and Short Tandem Repeat.
   $ python3 svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
   ```
 
-#### 3. Run classifiers:
+#### 4. Run classifiers:
 
 ```
 $ cd ../classifiers
@@ -161,7 +171,7 @@ $ python3 -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../re
 $ python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
 ```
 
-#### 4. Compare the methods: (Reproduce Fig 6 and S4):
+#### 5. Compare the methods: (Reproduce Fig 6 and S4):
 
 ```
 $ cd ../
@@ -178,10 +188,3 @@ $ python3 plottings.py
 
 </p>
 
-### Installation
-All python dependencies for the GoFAE-DND are in [`gofaednd_env.yml`](gofaednd_env.yml)
-
-```
-$ conda env create -f gofaednd_env.yml
-$ conda activate gofaednd_env
-```
