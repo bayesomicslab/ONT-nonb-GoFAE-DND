@@ -534,7 +534,7 @@ if __name__ == '__main__':
     # else:
     #     noise_std = 0.1
     win_size = 100
-    save_path = 'simulated_data'
+    save_path = '../simulated_data'
 
     if not os.path.exists(save_path):
         os.mkdir(save_path)
