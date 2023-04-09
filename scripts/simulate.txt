@@ -1,0 +1,2 @@
+cd simulator
+simulator.py -nb 1000 -b 100000
