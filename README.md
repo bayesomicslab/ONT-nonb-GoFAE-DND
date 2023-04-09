@@ -38,9 +38,9 @@ into *strides*, which are the smallest length of measurement accepted by the bas
 
 
 
+## Experimental data:
 
-
-## Instructions for downloading the data and GitHub repo
+### Instructions for downloading the data and GitHub repo
 
    1) Create or change directory where you want to reproduce the results.
 
@@ -63,7 +63,7 @@ into *strides*, which are the smallest length of measurement accepted by the bas
 
 
 
-## Reads Processing:
+### Reads Processing:
 
 <p align="center">
 
@@ -108,7 +108,7 @@ $ tombo resquiggle $path/workspace/pass/ hg38.fa --dna --overwrite --basecall-gr
 
 
 
-## Prepare the windows:
+### Prepare the windows:
 
 ### Step 1:
 Extract motifs postions from [non-B DNA DB](https://nonb-abcc.ncifcrf.gov/apps/site/default).
