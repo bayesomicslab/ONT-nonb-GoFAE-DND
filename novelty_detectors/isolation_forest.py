@@ -48,7 +48,7 @@ def isolation_forest_model(dataset, folder, results_path, n_bdna, n_nonb, thread
             pool = Pool(thread)
             pool.map(train_if_nonb_sim, inputs)
         else:
-            for ino in inputs:
+            for inp in inputs:
                 train_if_nonb_sim(inp)
         results_sim_pd = collect_results(results_path, results_name)
         # plot_sim(results_path, results_name)
