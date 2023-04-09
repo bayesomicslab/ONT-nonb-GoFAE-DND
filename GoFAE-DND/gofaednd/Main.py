@@ -2,6 +2,8 @@
 import sys
 import argparse
 import torch
+import numpy as np
+import random
 from core.GoFAEDND import GoFAEDND
 from utilities.IOUtilities import eprint
 
@@ -19,6 +21,13 @@ class Main(object):
 
         parser = Main.getParser()
         args = parser.parse_args(cmd_args[1:])
+
+        torch.manual_seed(args.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.cuda.manual_seed(args.seed)
+        np.random.seed(args.seed)
+        random.seed(args.seed)
+
         cls.fQuiet = args.fQuiet
 
         if not cls.fQuiet:
@@ -100,10 +109,10 @@ class Main(object):
         parser.add_argument('--momentum', type=float, help='Parameter for exponential moving average of mean and covariance statistics.', default=0.01)
         parser.add_argument('--ncv', type=int, help='Number of training epochs between each validation evaluation.', default=1)
         parser.add_argument('--num_workers', type=int, help='Number of workers for the dataloader.', default=0)
-        parser.add_argument('--experiment', type=int, help='Where to store each run', default=10000)
+        parser.add_argument('--config', type=int, help='Where to store each run', default=10000)
         parser.add_argument('--seed', type=int, help='Random seed.', default=42)
         parser.add_argument('--diststat_path', type=str, help='Path for the empirical distribution directory.', default='../data/empirical_dist')
-        parser.add_argument('--output_path', type=str, help='Path for output.', default='./output')
+        parser.add_argument('--output_path', type=str, help='Path for output.', default='../../results')
         parser.add_argument('--exp_data_path', type=str, help='Path to experimental data.', default='D:/prepared_windows_req5_mean/final_dataset_splitted/')
         parser.add_argument('--sim_data_path', type=str, help='Path to simulated data.', default='D:/simulated_function_sin_random/')
 

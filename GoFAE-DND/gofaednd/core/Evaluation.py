@@ -67,18 +67,16 @@ def get_novelty_info(nets, loader, latent_dim, loss_fn_eval, Stiefel, device):
             decoder = nets[1]
             decoder.eval()
 
-        store_recon_loss = []  # used
+        store_recon_loss = []
 
-        store_orig = []  # used
-        store_recon = []  # used
+        store_orig = []
+        store_recon = []
 
-        store_z_codes = np.empty((0, latent_dim), float)  # used
-        store_x_resids = np.empty((0, 100), float)  # used
+        store_z_codes = np.empty((0, latent_dim), float)
 
         for batch_idx, all_val_data in enumerate(loader):
 
             images = all_val_data[0].to(device)
-            # print(images.shape)
 
             #############################################
             # Encode and project for test if needed #
@@ -121,10 +119,6 @@ def get_novelty_info(nets, loader, latent_dim, loss_fn_eval, Stiefel, device):
             # Store the encodings
             store_z_codes = np.append(store_z_codes, p2_out.detach().cpu().numpy(), axis=0)
 
-            # Store the reconstruction residuals
-            # store_x_resids = np.append(store_x_resids, recon_resid.detach().cpu().numpy(), axis=0)
-
-    # return store_z_codes, store_x_resids
     return store_z_codes, np.array(store_recon_loss), (np.array(store_orig), np.array(store_recon))
 
 

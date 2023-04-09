@@ -177,3 +177,11 @@ $ python3 plottings.py
   <img width=60% height=60% src="https://user-images.githubusercontent.com/45966768/228676731-1c8ac6a9-8221-42db-aedd-d4e8096f9331.png">
 
 </p>
+
+### Installation
+All python dependencies for the GoFAE-DND are in [`gofaednd_env.yml`](gofaednd_env.yml)
+
+```
+$ conda env create -f gofaednd_env.yml
+$ conda activate gofaednd_env
+```

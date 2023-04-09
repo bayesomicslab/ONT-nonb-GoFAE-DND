@@ -2,37 +2,34 @@ import numpy as np
 import os
 import pandas as pd
 import sys
+sys.path.append('../../')
 import time
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from pathlib import Path
 from torch.utils.data import DataLoader
-from torchvision.utils import save_image
 from hypotests.CoreTests import SWF_weights
 from utilities.TestUtilities import check_test, testsetup
 from core.Manifolds import replacegrad, retract2manifold, sample_Stiefel
-from core.Sampling import samples #, est_image_recon,
 from hypotests.CoreTests import CramerVonMises, KolmogorovSmirnov, \
     ShapiroFrancia, ShapiroWilk, HenzeZirkler, MardiaSkew, Royston, EppsPulley1
-from hypotests.UnifTests import ChiSquareUnif, KolmogorovSmirnovUnif
 from utilities.IOUtilities import savemodel, eprint
 from architecture.Encoders import Encoder_P1, Encoder_P2
 from architecture.Decoders import Decoder
-#from core.Dataset import load_dataset
 from utilities.IOUtilities import save_data, save_summary
 from core.Losses import discriminative_loss
-from core.Dataset import import_data, load_data2, reprocess_data2
+from core.Dataset import import_data, reprocess_data2
 from torch.utils.data import TensorDataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from core.Evaluation import get_novelty_info, NoveltyStats, get_union, get_intersection, get_symdif, \
     get_jaccard, get_idx, disc_ratio, compute_empirical , compute_true_sim_counts, compute_accuracy_metrics
 from sklearn.covariance import MinCovDet
 from scipy import stats
-from core.Plotting import trace_plots, plot_test, plot_test_sim, plot_test_sim_split
+from core.Plotting import plot_test, plot_test_sim, plot_test_sim_split
 from statsmodels.stats.multitest import fdrcorrection
 from matplotlib import pyplot as plt
+from utils import load_data2
 
 
 class GoFAEDND():
@@ -48,7 +45,6 @@ class GoFAEDND():
         self.nonb_type = args.nonb_type
         self.nonb_ratio = args.nonb_ratio
         self.test = args.test
-        self.test_for_training = self.test
         self.new_stat = args.new_stat
         self.use_proj = args.use_proj
         self.n_z = args.n_z
@@ -76,7 +72,7 @@ class GoFAEDND():
         self.omega = args.omega
         self.Stiefel = args.Stiefel
         self.lr_e_d = args.lr_e_d
-        self.lr_adam_enc_p1 = args.lr_e_d  # double check this
+        self.lr_adam_enc_p1 = args.lr_e_d
         self.lr_cycle = args.lr_e_d
         self.lr_sgd = 5*args.lr_e_d
         self.beta1_enc_p1 = args.beta1_enc_p1
@@ -88,7 +84,7 @@ class GoFAEDND():
         self.momentum = args.momentum
         self.ncv = args.ncv
         self.num_workers = args.num_workers
-        self.experiment = args.experiment
+        self.config = args.config
         self.seed = args.seed
         self.diststat_path = args.diststat_path
         self.output_path = args.output_path
@@ -96,11 +92,11 @@ class GoFAEDND():
         self.sim_data_path = args.sim_data_path
 
         if self.data_type == 'experimental':
-            self.path = os.path.join(self.output_path, str(self.test), str(self.data_type), 'experiment_'+str(self.experiment),
+            self.path = os.path.join(self.output_path, 'exp_GOFAEDND', str(self.test), 'config_'+str(self.config),
                                      'use_'+str(self.new_stat))
         elif self.data_type == 'simulated':
-            self.path = os.path.join(self.output_path, str(self.test), str(self.data_type),'nonb_ratio_'+str(self.nonb_ratio),
-                                     'experiment_'+str(self.experiment), 'use_'+str(self.new_stat))
+            self.path = os.path.join(self.output_path, 'sim_GOFAEDND', str(self.test),'nonb_ratio_'+str(self.nonb_ratio),
+                                     'config_'+str(self.config), 'use_'+str(self.new_stat))
         else:
             sys.exit('Choose either the \'experimental\' or \'simulated\' dataset.')
 
@@ -226,10 +222,6 @@ class GoFAEDND():
         # alpha: if no projections are used, then alpha is needed to select the correct T_alpha (critical value)
 
         if use_proj:
-            #emp_dist_path = os.path.join(path,
-            #                test + '/latent_dim_' + str(n_z) + '/latent_dim_proj_' + str(
-            #    latent_dim_proj) + '/batch_size_' + str(self.batch_size) + \
-            #                '/inner_sim_' + str(num_projections)
 
             emp_dist_path = os.path.join(self.diststat_path, str(test), 'latent_dim_'+str(n_z),
                                          'latent_dim_proj_'+str(latent_dim_proj),
@@ -267,8 +259,6 @@ class GoFAEDND():
                 sys.exit("Configuration incorrect for test statistic")
         else:
             if test in self.mvn and new_stat == 'none':
-                #emp_cv_path = path + \
-                #              test + '/latent_dim_' + str(n_z) + '/emp_cv_alpha_' + str(self.alpha) + '.csv.gz'
 
                 emp_cv_path = os.path.join(self.diststat_path, str(test), 'latent_dim_' + str(n_z),
                                            'emp_cv_alpha_'+str(self.alpha) + '.csv')
@@ -282,7 +272,6 @@ class GoFAEDND():
     def run(self):
         # Encoder/Decoder
         # 3 modules, 2 encoders and 1 decoder
-
         encoder_p1 = Encoder_P1(n_inputs=2, out_dim=self.n_z, h_dim=self.h_dim, Stiefel=self.Stiefel).to(
             self.device)
 
@@ -312,9 +301,9 @@ class GoFAEDND():
 
         # Schedulers for Encoder/Decoder
         enc_p1_scheduler = ReduceLROnPlateau(enc_p1_optim, mode='min', factor=0.5, patience=5,
-                                             verbose=True)  # change factor to .1 (was .5)
+                                             verbose=True)
         dec_scheduler = ReduceLROnPlateau(dec_optim, mode='min', factor=0.5, patience=5,
-                                          verbose=True)  # change factor to .1 (was .5)
+                                          verbose=True)
 
         if self.Stiefel:
             enc_p2_optim = optim.SGD(encoder_p2.parameters(), lr=self.lr_sgd)
@@ -336,16 +325,9 @@ class GoFAEDND():
         track_val_pval = []
         track_val_total_loss = []
 
-        # track testing
-        track_test_recon = []
-        track_test_tstat = []
-        track_test_pval = []
-        track_test_total_loss = []
-
-        best_recon = float("inf")
         start_time_train = time.time()
 
-        # intialize latent stat monitoring
+        # initialize latent stat monitoring
         running_mean = np.zeros((self.n_z, 1))
         running_cov = np.zeros((self.n_z, self.n_z))
 
@@ -379,9 +361,6 @@ class GoFAEDND():
 
                 else:
                     images = all_data[0].to(self.device)
-                    # noisy_images = dropout(torch.ones(images.shape, device=device)) * images
-                # print(images.shape)
-                # print(o_data_img.shape)
 
                 onebatch_start_time = time.time()
                 if (step % 100) == 0:
@@ -404,7 +383,7 @@ class GoFAEDND():
                     p2_out = encoder_p1(images)
 
                 code_mean = np.mean(p2_out.detach().cpu().numpy(), axis=0).reshape(-1,
-                                                                                   1)  # change to using dbn change back after
+                                                                                   1)
                 code_cov = np.cov(p2_out.detach().cpu().numpy(), rowvar=False).reshape(self.n_z, self.n_z)
 
                 running_mean = (1. - self.momentum) * running_mean + self.momentum * code_mean
@@ -476,12 +455,11 @@ class GoFAEDND():
                     dec_input = p2_out
                     x_true = images
 
-                # print(dec_input.shape)
                 x_recon = decoder(dec_input)
 
                 # calculate reconstruction loss
                 if self.loss_fn == 'mse':
-                    recon_loss = F.mse_loss(x_recon, x_true)  # , reduction='sum').div(batch_size)
+                    recon_loss = F.mse_loss(x_recon, x_true)
                 elif self.loss_fn == 'mae':
                     recon_loss = F.l1_loss(x_recon, x_true)
                 elif self.loss_fn == 'smae':
@@ -491,7 +469,6 @@ class GoFAEDND():
                 elif self.loss_fn == 'rmse':
                     recon_loss = torch.mean(torch.sqrt(torch.sum(F.mse_loss(x_recon, x_true, reduction='none'), dim=1)))
                 elif self.loss_fn == 'discriminative':
-                    # loss, bdna_loss, nonb_loss
                     recon_loss, bdna_recon_loss, nonb_recon_loss = discriminative_loss(x_true, x_recon, all_dat_labs,
                                                                                     loss_function=self.discriminative_loss_fn,
                                                                                     device=self.device,
@@ -529,7 +506,7 @@ class GoFAEDND():
 
                 if self.Stiefel:
                     retract2manifold(encoder_p2)
-                    enc_p2_scheduler.step()  # moved this to after retraction
+                    enc_p2_scheduler.step()
 
                 onebatch_end_time = time.time()
                 onebatch_total_time = (onebatch_end_time - onebatch_start_time)
@@ -623,9 +600,7 @@ class GoFAEDND():
                     encoder_p2.train()
                 decoder.train()
 
-                # Use validation loss to modify learning rate on TRAINING SET
                 enc_p1_scheduler.step(val_rec)
-                # enc_p2_scheduler.step(val_rec)
                 dec_scheduler.step(val_rec)
 
         end_time_train = time.time()
@@ -650,7 +625,7 @@ class GoFAEDND():
                                              header=['recon', 'recon_bdna', 'recon_nonb', 'tstat', 'pval',
                                                      'total_loss'], index=False)
 
-        # Saved information from VALIDATION
+        # Saved information
         full_val_data = np.hstack((np.array(track_val_recon).reshape(-1, 1), np.array(track_val_tstat).reshape(-1, 1),
                                    np.array(track_val_pval).reshape(-1, 1),
                                    np.array(track_val_total_loss).reshape(-1, 1)))
@@ -669,7 +644,6 @@ class GoFAEDND():
                                  poison_val_count=len(self.val_bdna_poison))
         emp_dist_MH_U, sorted_idx_MH_U, rejected_MH_U, disc_bdna_MH_U, disc_nonb_MH_U = gstats_MH.get_ns(tail='upper')
 
-        # Maybe saving it out will be easier when alpha isn't set right
         pd.DataFrame(np.hstack((emp_dist_MH_U.reshape(-1, 1), sorted_idx_MH_U.reshape(-1, 1)))).to_csv(
             os.path.join(self.nonb_path, str(self.nonb_type) + '_MH_val_idx.csv'),
             header=['MH_U', 'MH_idx_U'], index=False)
@@ -679,7 +653,6 @@ class GoFAEDND():
         emp_dist_Rec_U, sorted_idx_Rec_U, rejected_Rec_U, disc_bdna_Rec_U, disc_nonb_Rec_U = gstats_Rec.get_ns(
             tail='upper')
 
-        # Maybe saving it out will be easier when alpha isn't set right
         pd.DataFrame(np.hstack((emp_dist_Rec_U.reshape(-1, 1), sorted_idx_Rec_U.reshape(-1, 1)))).to_csv(
             os.path.join(self.nonb_path, str(self.nonb_type) + '_Rec_val_idx.csv'),
             header=['Rec_U', 'Rec_idx_U'], index=False)
@@ -770,15 +743,6 @@ class GoFAEDND():
             pd.DataFrame(full_test_data).to_csv(os.path.join(self.path, 'testing.csv'), header=['recon', 'tstat', 'pval', 'total_loss'],
                                                 index=False)
 
-            obs = 10
-
-            # Forward
-            trace_plots(x_true=bdna_test_full[0][obs][0], x_pred=bdna_test_full[1][obs][0], obs=obs, titlestring='Forward', \
-                        path2save=os.path.join(self.img_path, 'test_sample_obs_' + str(obs) + '_Forward.png'))
-            # Reverse
-            trace_plots(x_true=bdna_test_full[0][obs][1], x_pred=bdna_test_full[1][obs][1], obs=obs, titlestring='Reverse', \
-                        path2save=os.path.join(self.img_path,'test_sample_obs_' + str(obs) + '_Reverse.png'))
-
             nonb_test_latent_code, nonb_test_rec, nonb_test_full, nonb_MH_test, \
             nonb_MH2_test = self.transform_with_novelty_stats(encoder_p1, encoder_p2, decoder, self.outlier_dataset_test)
 
@@ -796,7 +760,6 @@ class GoFAEDND():
             if self.data_type != 'simulated':
                 test_bed = pd.read_csv(os.path.join(self.exp_data_path, str(self.nonb_type) + '_test_bed.csv'))
                 test_bed_filtered = test_bed.iloc[sorted_idx_test_U[rejected_test_U]]
-                # test_bed_filtered.to_csv(nonb_path+str(nonb_type)+'_test_filtered.csv', sep='\t', index=False)
                 test_bed_filtered.to_csv(os.path.join(self.nonb_path, str(self.nonb_type) + '_test_filtered_NEW.bed'), sep='\t', index=False)
 
             savesum_test = np.hstack((len(self.test_nonb), sum(rejected_test_U), self.fdr_level))
@@ -805,7 +768,6 @@ class GoFAEDND():
 
             test_summary_upper = pd.DataFrame(savesum_test.reshape(1, -1), columns=columns_test)
             save_summary(nonb_path=self.nonb_path, name='test_summary_upper', data=test_summary_upper)
-            #bdna_test_latent_code, bdna_test_rec, bdna_test_full, bdna_MH_test, bdna_MH2_test
 
             fig = plt.figure(figsize=(8, 6))
             plt.hist(bdna_MH_test, range=(2, 20), bins=100, label='bdna', alpha=0.5, density=True)  # range=(2,12.5)
@@ -834,7 +796,7 @@ class GoFAEDND():
 
             plot_test(bdna_MH_test, bdna_test_rec, nonb_MH_test, nonb_test_rec, idxs=sorted_idx_test_U[rejected_test_U],
                       img_path=self.img_path,
-                      selection='MH2', fdr_level=self.fdr_level)
+                      selection='MH2')
 
             if self.data_type =='simulated':
                 tn_idxs, fp_idxs, fn_idxs, tp_idxs, real_idx = compute_true_sim_counts(test_sim=self.test_sim, nonb_type=self.nonb_type, \
@@ -842,7 +804,7 @@ class GoFAEDND():
 
                 precision, recall, fscore = compute_accuracy_metrics(len(tn_idxs), len(fp_idxs), len(fn_idxs), len(tp_idxs))
 
-                pd.DataFrame(np.array([self.experiment, len(tp_idxs), len(fp_idxs), len(fn_idxs), len(tn_idxs), precision, \
+                pd.DataFrame(np.array([self.config, len(tp_idxs), len(fp_idxs), len(fn_idxs), len(tn_idxs), precision, \
                                        recall, fscore]).reshape(1, -1)).to_csv(
                     os.path.join(self.nonb_path, 'sim_stats_test.csv'),
                     header=['experiment', 'tp', 'fp', 'fn', 'tn', 'precision', 'recall', 'fscore'], index=False)
@@ -861,93 +823,13 @@ class GoFAEDND():
                 plot_test_sim_split(bdna_MH_test, bdna_test_rec, nonb_MH_test, nonb_test_rec, list(tp_idxs), list(fp_idxs),
                                     selection='MH2', img_path=self.img_path)
 
-
-
-
-
-
-
-
-
-
-
-        # ks_unif_emp_dist = KolmogorovSmirnovUnif.get_ks_unif_info(self.diststat_path, self.test_set_samp_size)
-        #
-        # with open(os.path.join(self.path, str('evaluations.txt')), 'w') as filetowrite:
-        #     filetowrite.write('Evaluations\n')
-        #
-        # pval_stat_test = []
-        #
-        # for test in htest_map:
-        #
-        #     hypothesis_test = htest_map[test]
-        #
-        #     print("Checking Test {} \n".format(test), flush=True)
-        #
-        #     #latent_dim_proj, num_projections = self.get_latent_dim_projections(test)
-        #
-        #     emp_dist, T_alpha = self.get_stat_info(path=self.diststat_path, use_proj=self.use_proj, test=test,
-        #                                            n_z=self.n_z,
-        #                                            batch_size=self.batch_size, latent_dim_proj=self.latent_dim_proj,
-        #                                            num_projections=self.num_projections, new_stat=hypothesis_test.new_stat)
-        #
-        #     test_dictionary = self.get_test_param_dict(self.device, test, hypothesis_test.new_stat)
-        #     self.hypothesis_test = testsetup(test, emp_dist, test_dictionary)
-        #
-        #     eval_stat, eval_pval = self.evaluate_all_tests(nets=(encoder_p1, encoder_p2), validate_loader=self.test_loader,
-        #                                               n_z=self.n_z, use_proj=self.use_proj, latent_dim_proj=self.latent_dim_proj,
-        #                                               num_projections=self.num_projections, htest=self.hypothesis_test,
-        #                                               batch_size=self.batch_size, device=self.device)
-        #     for i in range(len(eval_stat)):
-        #         pval_stat_test.append(eval_pval[i])
-        #         pval_stat_test.append(eval_stat[i])
-        #         pval_stat_test.append(test)
-        #
-        #     ####### Uniformity Tests ############
-        #     # Kolmogorov-Smirnov
-        #     ks_htest = KolmogorovSmirnovUnif(self.device, ks_unif_emp_dist)
-        #     ks_unif_tstat = ks_htest.teststat(torch.tensor(eval_pval, dtype=torch.float, device=self.device))  # this is a torch tensor
-        #     ks_unif_pval = ks_htest.pval(ks_unif_tstat)  # numpy scalar
-        #     print('KS Uniform Test Statistic: {:.4f}\n'.format(ks_unif_tstat.detach().cpu().numpy()), flush=True)
-        #     print('KS Uniform P-value: {:.4f}\n'.format(ks_unif_pval), flush=True)
-        #
-        #     # Pearson's Chi-squared, not used in paper
-        #     chi_htest = ChiSquareUnif()
-        #     chisq_tstat = chi_htest.teststat(eval_pval)
-        #     chisq_pval = chi_htest.chisq_pval
-        #
-        #     txt_file = open(os.path.join(self.path, str('evaluations.txt')), "a")
-        #     txt_file.write(
-        #         "Original Test: %s, Evaluating: %s - KS_unif stat: %0.4f, KS_unif pval: %0.4f, Chi-square stat: %0.4f, Chi-square pval: %0.4f\n" % (
-        #             self.test_for_training, test, ks_unif_tstat, ks_unif_pval, chisq_tstat, chisq_pval))
-        #     txt_file.close()
-        # dt = np.dtype('float,float')
-        # pd.DataFrame({'pval': pd.Series(pval_stat_test[0::3], dtype='float'),
-        #               'teststat': pd.Series(pval_stat_test[1::3], dtype='float'),
-        #                'test': pd.Series(pval_stat_test[2::3], dtype='object')}).to_csv(os.path.join(self.path, str('save_eval_stats.csv')),
-        #                                       header=['pval', 'teststat', 'test'], index=False)
-        #
-        # print("Training and Evaluating Complete\n".format(self.test), flush=True)
-
-    # def get_latent_dim_projections(self, test):
-    #     if test in self.uvn:
-    #         latent_dim_proj = self.latent_dim_proj # 1  # dimension of data the test is conducted on
-    #         num_projections = self.num_projections # 64
-    #     elif test in self.mvn:
-    #         latent_dim_proj = 16
-    #         num_projections = 8
-    #     else:
-    #         sys.exit('Test Not Specified')
-    #     return latent_dim_proj, num_projections
-
     def generate_test_map(self):
         test_map={}
 
-        # Only univariate tests considered for the paper
+        # Only the univariate SW test is considered for this paper
         tests = [('sw', True, 'min'), ('sf', True, 'min'), ('cvm', True, 'max'), ('ks', True, 'max'), ('ep1', True, 'min')]
 
         for test in tests:
-            #latent_dim_proj, num_projections = self.get_latent_dim_projections(test[0])
 
             test_dictionary = self.get_test_param_dict(self.device, test[0], test[2])
             emp_dist, T_alpha = self.get_stat_info(path=self.diststat_path, use_proj=test[1], test=test[0],
