@@ -209,6 +209,8 @@ if __name__ == '__main__':
         results_path = sys.argv[sys.argv.index('-r') + 1]
     else:
         results_path = ''
+    if not os.path.exists(results_path):
+        os.mkdir(results_path)
     
     if '-t' in sys.argv:
         thread = int(sys.argv[sys.argv.index('-t') + 1])
