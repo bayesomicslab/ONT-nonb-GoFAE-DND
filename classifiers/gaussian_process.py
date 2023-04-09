@@ -2,6 +2,7 @@ import time
 import sys
 sys.path.append('../')
 from utils import *
+from plottings import *
 
 
 def gaussian_process_model(dataset, folder, results_path, n_bdna, n_nonb, thread):

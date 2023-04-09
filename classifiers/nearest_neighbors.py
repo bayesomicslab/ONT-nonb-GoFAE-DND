@@ -3,6 +3,8 @@ import sys
 sys.path.append('../')
 from utils import *
 from multiprocessing import Pool
+from plottings import *
+
 
 
 def nearest_neighbors_model(dataset, folder, results_path, n_bdna, n_nonb, thread):

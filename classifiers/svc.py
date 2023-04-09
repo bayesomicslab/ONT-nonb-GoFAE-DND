@@ -2,7 +2,7 @@ import time
 import sys
 sys.path.append('../')
 from utils import *
-
+from plottings import *
 
 def svc_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
     if not os.path.exists(results_path):
