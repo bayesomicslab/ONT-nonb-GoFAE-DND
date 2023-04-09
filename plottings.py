@@ -1631,7 +1631,7 @@ def prepare_sim_all_results_ismb():
 
 def prepare_sim_outliers_results_ismb():
     alpha = 0.2
-    results_sim = 'results/final_results_ismb'
+    results_sim = 'results'
     plot_path = os.path.join(results_sim, 'plots')
     if not os.path.exists(plot_path):
         os.mkdir(plot_path)
@@ -1744,9 +1744,9 @@ def prepare_sim_outliers_results_ismb():
         plt.tight_layout()
         
         # plt.show()
-        plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.tiff'), dpi=1200)
+        # plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.tiff'), dpi=1200)
         plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.png'), dpi=1200)
-        plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.tif'), dpi=1200)
-        plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.pdf'), dpi=1200)
+        # plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.tif'), dpi=1200)
+        # plt.savefig(os.path.join(plot_path, elem + 'F1_score_outliers.pdf'), dpi=1200)
 
 
