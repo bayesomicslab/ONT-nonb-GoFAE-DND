@@ -43,9 +43,13 @@ def isolation_forest_model(dataset, folder, results_path, n_bdna, n_nonb, thread
         nonb_ratios = [0.05, 0.1, 0.25]  # [0.025, 0.05, 0.075, 0.1, 0.25, 0.5]
         inputs = [[nonb, method, dataset, wins, n_bdna, n_nonb, nbr, data_path,
                    methods_results_path] for nonb in non_b_types for wins in win_sizes for nbr in nonb_ratios]
-        pool = Pool(thread)
-        pool.map(train_if_nonb_sim, inputs)
- 
+        if thread > 1:
+            
+            pool = Pool(thread)
+            pool.map(train_if_nonb_sim, inputs)
+        else:
+            for ino in inputs:
+                train_if_nonb_sim(inp)
         results_sim_pd = collect_results(results_path, results_name)
         # plot_sim(results_path, results_name)
 
