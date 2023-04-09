@@ -138,7 +138,7 @@ Compute translocation signal on the non-overlapping windows.
     for G-quadruples and Short Tandem Repeat.
 
     ```simulation
-     ~$ simulator.py -nb 1000 -b 100000 
+     ~$ python3 simulator.py -nb 10000 -b 1000000 
     ```
 2. 
 

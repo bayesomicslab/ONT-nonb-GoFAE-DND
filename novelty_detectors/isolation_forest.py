@@ -2,10 +2,9 @@ import os
 import time
 import sys
 import math
-import pandas as pd
 from utils import *
 from multiprocessing import Pool
-
+# from plottings import plot_histogram
 
 def isolation_forest_model(dataset, folder, results_path, n_bdna, n_nonb, thread):
     # results_path = '/home/mah19006/projects/nonBDNA/data/methods_results'
@@ -13,12 +12,13 @@ def isolation_forest_model(dataset, folder, results_path, n_bdna, n_nonb, thread
     if not os.path.exists(results_path):
         os.mkdir(results_path)
     #
-    non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Mirror_Repeat', 'Direct_Repeat',
-                   'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Inverted_Repeat']  # , ALL
+  # , ALL
 
     method = 'IF'
+    
     if dataset == 'exp':
-
+        non_b_types = ['A_Phased_Repeat', 'G_Quadruplex_Motif', 'Mirror_Repeat', 'Direct_Repeat',
+                       'Short_Tandem_Repeat', 'Z_DNA_Motif', 'Inverted_Repeat']
         results_name = '_'.join([dataset, method])
         methods_results_path = os.path.join(results_path, results_name)
         if not os.path.exists(methods_results_path):
@@ -31,17 +31,15 @@ def isolation_forest_model(dataset, folder, results_path, n_bdna, n_nonb, thread
         pool = Pool(thread)
         pool.map(train_if_nonb_exp, inputs)
         
-       
         results_exp_pd = collect_results(results_path, results_name)
-    
-    if dataset == 'sim':
 
+    if dataset == 'sim':
+        non_b_types = ['G_Quadruplex_Motif', 'Short_Tandem_Repeat']
         
         results_name = '_'.join([dataset, method])
         methods_results_path = os.path.join(results_path, results_name)
         if not os.path.exists(methods_results_path):
             os.mkdir(methods_results_path)
-        
 
         win_sizes = [50]  # [25, 50, 75, 100]
         nonb_ratios = [0.05, 0.1, 0.25]  # [0.025, 0.05, 0.075, 0.1, 0.25, 0.5]
@@ -65,7 +63,6 @@ def train_if_nonb_exp(inp):
  
     train, val, test, train_bed, val_bed, test_bed = load_data3(folder, nonb)
 
-    
     alpha_list = np.arange(0.05, 1, 0.05)
     # alpha_list = np.arange(0.01, 1, 0.01)
     tails = ['upper', 'lower']
@@ -82,7 +79,6 @@ def train_if_nonb_exp(inp):
     train = train.astype(convert_dict)
     val = val.astype(convert_dict)
     test = test.astype(convert_dict)
-    
     
     train, val = make_new_train_validation(train, val, ratio=5)
     train_x = train.drop(['label'], axis=1).to_numpy()
@@ -173,24 +169,24 @@ def train_if_nonb_sim(inp):
     print('Compute distributions ... ')
     null_dist_scores, eval_scores = calc_null_eval_distributions(test, if_model)
     null_dist_scores_scores, eval_scores_scores = calc_null_eval_distributions_scores(test, if_model)
-    plot_histogram(null_dist_scores, method + '_' + nonb + '_test_bdna_decision_function', save_path)
-    plot_histogram(eval_scores, method + '_' + nonb + '_test_nonb_decision_function', save_path)
-    plot_histogram(null_dist_scores_scores, method + '_' + nonb + '_test_bdna_scores', save_path)
-    plot_histogram(eval_scores_scores, method + '_' + nonb + '_test_nonb_scores', save_path)
+    # plot_histogram(null_dist_scores, method + '_' + nonb + '_test_bdna_decision_function', save_path)
+    # plot_histogram(eval_scores, method + '_' + nonb + '_test_nonb_decision_function', save_path)
+    # plot_histogram(null_dist_scores_scores, method + '_' + nonb + '_test_bdna_scores', save_path)
+    # plot_histogram(eval_scores_scores, method + '_' + nonb + '_test_nonb_scores', save_path)
     print('Evaluation ... ')
     for tail in tails:
         for alpha in alpha_list:
             print(tail, alpha)
             p_values, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores, eval_scores, alpha, tail)
-            plot_histogram(p_values, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'decision_p_values']),
-                           save_path)
+            # plot_histogram(p_values, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'decision_p_values']),
+            #                save_path)
             precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
             final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
                                                fn, precision, recall, fpr, tpr, fscore, duration, 'decision_function'
             counter += 1
             p_values_2, tn, fp, fn, tp = evaluation_sim(test, null_dist_scores_scores, eval_scores_scores, alpha, tail)
-            plot_histogram(p_values_2, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'scores_p_values']),
-                           save_path)
+            # plot_histogram(p_values_2, '_'.join([method, nonb, tail, str(round(alpha, 2)), 'scores_p_values']),
+            #                save_path)
             precision, recall, tpr, fpr, fscore = compute_accuracy_metrics(tn, fp, fn, tp)
             final_results_df.loc[counter, :] = dataset, method, nonb, winsize, nonb_ratio, alpha, tail, tp, tn, fp, \
                                                fn, precision, recall, fpr, tpr, fscore, duration, 'scores'
@@ -210,13 +206,11 @@ if __name__ == '__main__':
         data_path = sys.argv[sys.argv.index('-f') + 1]
     else:
         data_path = ''
-
-    
+   
     if '-r' in sys.argv:
         results_path = sys.argv[sys.argv.index('-r') + 1]
     else:
         results_path = ''
-
     
     if '-t' in sys.argv:
         thread = int(sys.argv[sys.argv.index('-t') + 1])
