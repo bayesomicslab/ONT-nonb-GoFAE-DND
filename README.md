@@ -43,16 +43,17 @@ into *strides*, which are the smallest length of measurement accepted by the bas
 ## Instructions for downloading the data and GitHub repo
 
    1) Create or change directory where you want to reproduce the results.
-   2) Download and extract the data.
+      2) Download and extract the data.
 
-       First, we download the PacBio fast5 file from: 
-       https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR15058166&display=metadata
-       ### Note: this may be slow as the FAST5 files total over 4TB 
-       (We also clean up the directory since these files are very large)
+          First, we download the PacBio fast5 file from: 
+          https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR15058166&display=metadata
+          ### Note: this may be slow as the FAST5 files total over 4TB 
+          (We also clean up the directory since these files are very large)
+          (Or run the following script in the script folder.)
         
-        ```
-        sh download.sh
-        ```
+           ```
+           sh download.sh
+           ```
 
   3) Clone the github repository
 
@@ -62,7 +63,6 @@ into *strides*, which are the smallest length of measurement accepted by the bas
 
 
 ## Reads Processing:
-
 
 <p align="center">
 
@@ -130,15 +130,16 @@ Compute translocation signal on the non-overlapping windows.
 
 ## Simulation
 
+1. Make simulated windows.
 
-This is an example of command that simulate
-$100,000$ B-DNA and $1,000$ non-B DNA windows 
-for G-quadruples and Short Tandem Repeat.
+    This is an example of command that simulate
+    $100,000$ B-DNA and $1,000$ non-B DNA windows 
+    for G-quadruples and Short Tandem Repeat.
 
-```simulation
-~$ simulator.py -nb 1000 -b 100000 
-```
-
+    ```simulation
+     ~$ simulator.py -nb 1000 -b 100000 
+    ```
+2. 
 
 
 
