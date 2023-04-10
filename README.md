@@ -36,41 +36,76 @@ However, ONT devices record a measurement of current at a predefined sampling ra
 into *strides*, which are the smallest length of measurement accepted by the basecaller and represent a single base translocation
 ([An introduction to the concept of events and strides](http://simpsonlab.github.io/2015/04/08/eventalign/)).
 
+## Cloning the Project and Creating the Environment
 
+These instructions assume that you have miniconda or anaconda installed.
+To begin, clone the GoFAE-DND project. In a command line with git in your path:
+```
+$ git clone https://github.com/bayesomicslab/ONT-nonb-GoFAE-DND.git
+```
+Then, change directory into the ONT-nonb-GoFAE-DND/ folder and
+create and activate the conda environment.
 
-## Simulation
+```
+$ conda env create -f GoFAE-DND/gofaednd/gofaednd_env.yml
+$ conda activate gofaednd_env
+```
 
-#### 1. Make simulated windows:
+## Simulations
+
+#### 1. Make simulated windows
 
 This is an example of command that simulate
 100,000 B-DNA and 1,000 non-B DNA windows 
 for G-quadruples and Short Tandem Repeat.
+You must have matplotlib, numpy, and pandas 
+installed.
+In a command line with python3 in your path, 
+change directory into simulator/ and then
+run the simulator, which specifies the amount 
+of non-B and B DNA samples. 
+This may take a couple minutes:
 
-
+     $ cd simulator
      $ python3 simulator.py -nb 10000 -b 1000000 
 
-#### 2. Run GoFAE-DND on simulated data:
-All python dependencies for the GoFAE-DND are in [`gofaednd_env.yml`](gofaednd_env.yml)
+#### 2. Run GoFAE-DND on simulated data
+All python dependencies for the GoFAE-DND are in [`gofaednd_env.yml`](GoFAE-DND/gofaednd/gofaednd_env.yml)
 
 ```
-$ cd GoFAE-DND/gofaednd
-$ conda env create -f gofaednd_env.yml
-$ conda activate gofaednd_env
-$ python3 Main.py --simulated --sim_data_path=../simulated_data/ --config=output_folder --nonb_type=G_Quadruplex_Motif --nonb_ratio=0.1 --n_z=64 --projections=64 --epochs=25 --fdr_level=0.2 --discriminitive_weight=35 --lambda_alpha=0.5 
-$ python3 Main.py --simulated --sim_data_path=../simulated_data/ --config=output_folder --nonb_type=Short_tandem_repeat --nonb_ratio=0.1 --n_z=64 --projections=64 --epochs=25 --fdr_level=0.2 --discriminitive_weight=35 --lambda_alpha=0.5 
+$ cd ../GoFAE-DND/gofaednd
+$ python3 Main.py --data_type=simulated --sim_data_path=../../simulated_data/ --config=1 --nonb_type=G_Quadruplex_Motif --nonb_ratio=0.1 --n_z=64 --num_projections=64 --epochs=25 --fdr_level=0.2 --discriminative_weight=35 --lambda_alpha=0.5 
+$ python3 Main.py --data_type=simulated --sim_data_path=../../simulated_data/ --config=2 --nonb_type=Short_tandem_repeat --nonb_ratio=0.1 --n_z=64 --num_projections=64 --epochs=25 --fdr_level=0.2 --discriminative_weight=35 --lambda_alpha=0.5 
 ```
 
+Note: to get a list of all parameters, run the command:
+```
+$ python3 Main.py --help
+```
 
-#### 3. Run novelty detection methods:
+The results including spreadsheets of metrics and diagnostic images 
+are included in the root-level results/ directory.
+
+#### 3. Run novelty detection methods
+
+To run the other methods, we will need to install seaborn and h5py first.
+
+```
+$ conda install seaborn
+$ conda install h5py
+```
+Afterwards, we can run isolation forests, local outlier factors, and one class SVMs.
 
   ```
-  $ cd ../novelty_detectors
+  $ cd ../../novelty_detectors
   $ python3 isolation_forest.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
   $ python3 local_outlier_factor.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
   $ python3 svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
   ```
 
-#### 4. Run classifiers:
+
+
+#### 4. Run classifiers
 
 ```
 $ cd ../classifiers
@@ -80,6 +115,9 @@ $ python3 -W ignore nearest_neighbors.py -d sim -f ../simulated_data/ -r ../resu
 $ python3 -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
 $ python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
 ```
+
+The results for both novelty detectors and classifiers can be found in the root-level
+results directory.
 
 [//]: # ()
 [//]: # (#### 5. Compare the methods: &#40;Reproduce Fig 6 and S4&#41;:)
@@ -106,7 +144,7 @@ $ python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../resul
 
 
 
-## Experimental data:
+## Experimental data
 
 ### Instructions for downloading the data and GitHub repo
 
@@ -117,21 +155,15 @@ $ python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../resul
        First, we download the PacBio fast5 file from: 
        https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR15058166&display=metadata
        ### Note: this may be slow as the FAST5 files total over 4TB 
-       (We also clean up the directory since these files are very large)
-       (Or run the following script in the script folder.)
+       For convenience, we provide a download.sh script in the script folder that will 
+       download, unpack, and clean up the directory.
         
         ```
         $ sh download.sh
         ```
 
-  3) Clone the github repository
 
-       ``` $ git clone https://github.com/bayesomicslab/ONT-nonb-GoFAE-DND.git```
-
-
-
-
-### Reads Processing:
+### Processing Reads
 
 <p align="center">
 
@@ -176,7 +208,7 @@ $ tombo resquiggle $path/workspace/pass/ hg38.fa --dna --overwrite --basecall-gr
 
 
 
-### Prepare the windows:
+### Prepare the windows
 
 ### Step 1:
 Extract motifs postions from [non-B DNA DB](https://nonb-abcc.ncifcrf.gov/apps/site/default).
