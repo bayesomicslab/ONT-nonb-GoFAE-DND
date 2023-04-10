@@ -60,7 +60,8 @@ $ cd GoFAE-DND/gofaednd
 $ python Main.py --help
 ```
 
-Though, we recommend executing the following code which generates 
+Though, **to understand how to run the GoFAE-DND, we recommend 
+executing the following code** which generates 
 simulated translocation times and then runs the GoFAE-DND method
 along with classifiers and novelty detectors.
 
