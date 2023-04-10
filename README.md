@@ -51,6 +51,19 @@ $ conda env create -f GoFAE-DND/gofaednd/gofaednd_env.yml
 $ conda activate gofaednd_env
 ```
 
+## Running GoFAE-DND
+
+To run the GoFAE-DND, change directory and run the Main.py file.
+
+```
+$ cd GoFAE-DND/gofaednd
+$ python Main.py --help
+```
+
+Though, we recommend executing the following code which generates 
+simulated translocation times and then runs the GoFAE-DND method
+along with classifiers and novelty detectors.
+
 ## Simulations
 
 #### 1. Make simulated windows
@@ -60,27 +73,27 @@ This is an example of command that simulate
 for G-quadruples and Short Tandem Repeat.
 You must have matplotlib, numpy, and pandas 
 installed.
-In a command line with python3 in your path, 
+In a command line with python in your path, 
 change directory into simulator/ and then
 run the simulator, which specifies the amount 
 of non-B and B DNA samples. 
 This may take a couple minutes:
 
      $ cd simulator
-     $ python3 simulator.py -nb 10000 -b 1000000 
+     $ python simulator.py -nb 10000 -b 1000000 
 
 #### 2. Run GoFAE-DND on simulated data
 All python dependencies for the GoFAE-DND are in [`gofaednd_env.yml`](GoFAE-DND/gofaednd/gofaednd_env.yml)
 
 ```
 $ cd ../GoFAE-DND/gofaednd
-$ python3 Main.py --data_type=simulated --sim_data_path=../../simulated_data/ --config=1 --nonb_type=G_Quadruplex_Motif --nonb_ratio=0.1 --n_z=64 --num_projections=64 --epochs=25 --fdr_level=0.2 --discriminative_weight=35 --lambda_alpha=0.5 
-$ python3 Main.py --data_type=simulated --sim_data_path=../../simulated_data/ --config=2 --nonb_type=Short_tandem_repeat --nonb_ratio=0.1 --n_z=64 --num_projections=64 --epochs=25 --fdr_level=0.2 --discriminative_weight=35 --lambda_alpha=0.5 
+$ python Main.py --data_type=simulated --sim_data_path=../../simulated_data/ --config=1 --nonb_type=G_Quadruplex_Motif --nonb_ratio=0.1 --n_z=64 --num_projections=64 --epochs=25 --fdr_level=0.2 --discriminative_weight=35 --lambda_alpha=0.5 
+$ python Main.py --data_type=simulated --sim_data_path=../../simulated_data/ --config=2 --nonb_type=Short_tandem_repeat --nonb_ratio=0.1 --n_z=64 --num_projections=64 --epochs=25 --fdr_level=0.2 --discriminative_weight=35 --lambda_alpha=0.5 
 ```
 
 Note: to get a list of all parameters, run the command:
 ```
-$ python3 Main.py --help
+$ python Main.py --help
 ```
 
 The results including spreadsheets of metrics and diagnostic images 
@@ -98,9 +111,9 @@ Afterwards, we can run isolation forests, local outlier factors, and one class S
 
   ```
   $ cd ../../novelty_detectors
-  $ python3 isolation_forest.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
-  $ python3 local_outlier_factor.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
-  $ python3 svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
+  $ python isolation_forest.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
+  $ python local_outlier_factor.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000 
+  $ python svm_one_class.py -W ignore -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000   
   ```
 
 
@@ -109,11 +122,11 @@ Afterwards, we can run isolation forests, local outlier factors, and one class S
 
 ```
 $ cd ../classifiers
-$ python3 -W ignore svc.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-$ python3 -W ignore random_forest.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-$ python3 -W ignore nearest_neighbors.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-$ python3 -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
-$ python3 -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python -W ignore svc.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python -W ignore random_forest.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python -W ignore nearest_neighbors.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python -W ignore logistic_regression.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
+$ python -W ignore gaussian_process.py -d sim -f ../simulated_data/ -r ../results/ -nb 20000 -b 200000
 ```
 
 The results for both novelty detectors and classifiers can be found in the root-level
