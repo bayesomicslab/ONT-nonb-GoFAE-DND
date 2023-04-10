@@ -148,6 +148,7 @@ $ cd GoFAE-DND/gofaednd
 $ conda env create -f gofaednd_env.yml
 $ conda activate gofaednd_env
 $ python3 Main.py --simulated --sim_data_path=../simulated_data/ --config=output_folder --nonb_type=G_Quadruplex_Motif --nonb_ratio=0.1 --n_z=64 --projections=64 --epochs=25 --fdr_level=0.2 --discriminitive_weight=35 --lambda_alpha=0.5 
+$ python3 Main.py --simulated --sim_data_path=../simulated_data/ --config=output_folder --nonb_type=Short_tandem_repeat --nonb_ratio=0.1 --n_z=64 --projections=64 --epochs=25 --fdr_level=0.2 --discriminitive_weight=35 --lambda_alpha=0.5 
 ```
 
 
