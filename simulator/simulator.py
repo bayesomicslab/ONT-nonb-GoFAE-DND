@@ -529,12 +529,11 @@ if __name__ == '__main__':
     else:
         n_bdna = 1000000
 
-    # if '-std' in sys.argv:
-    #     noise_std = int(sys.argv[sys.argv.index('-std') + 1])
-    # else:
-    #     noise_std = 0.1
+    if '-s' in sys.argv:
+        save_path = int(sys.argv[sys.argv.index('-s') + 1])
+    else:
+        save_path = '../simulated_data'
     win_size = 100
-    save_path = '../simulated_data'
 
     if not os.path.exists(save_path):
         os.mkdir(save_path)

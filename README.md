@@ -81,7 +81,7 @@ of non-B and B DNA samples.
 This may take a couple minutes:
 
      $ cd simulator
-     $ python simulator.py -nb 10000 -b 1000000 
+     $ python simulator.py -nb 10000 -b 1000000 -s ../simulated_data 
 
 #### 2. Run GoFAE-DND on simulated data
 All python dependencies for the GoFAE-DND are in [`gofaednd_env.yml`](GoFAE-DND/gofaednd/gofaednd_env.yml)
