@@ -166,7 +166,7 @@ results directory.
 
    2) Download and extract the data.
 
-       First, we download the PacBio fast5 file from: 
+       First, we download the Nanopore fast5 file from: 
        https://trace.ncbi.nlm.nih.gov/Traces/?view=run_browser&acc=SRR15058166&display=metadata
        ### Note: this may be slow as the FAST5 files total over 4TB 
        For convenience, we provide a download.sh script in the script folder that will 
