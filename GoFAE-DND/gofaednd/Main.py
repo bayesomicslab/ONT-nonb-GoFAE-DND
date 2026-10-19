@@ -9,59 +9,66 @@ from utilities.IOUtilities import eprint
 
 
 class Main(object):
-
+    
     @classmethod
     def init(cls, cmd_args, tee):
         if tee is None:
             if sys.platform == "win32":
                 tee = open("NUL:")
             else:
-                #  should be fine for OSX/Linux
                 tee = open("/dev/null")
 
         parser = Main.getParser()
         args = parser.parse_args(cmd_args[1:])
 
+        # -------------------- seeding (CPU/GPU-safe) --------------------
         torch.manual_seed(args.seed)
-        torch.backends.cudnn.deterministic = True
-        torch.cuda.manual_seed(args.seed)
         np.random.seed(args.seed)
         random.seed(args.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(args.seed)
+            torch.backends.cudnn.deterministic = True  # only relevant when CUDA is present
 
         cls.fQuiet = args.fQuiet
-
         if not cls.fQuiet:
             eprint("args =")
             for arg in cmd_args:
                 eprint(" " + arg)
-            eprint()
-            eprint()
+            eprint(); eprint()
 
-            print("Diagnostic info")
-            print(torch.cuda.current_device(), flush=True)
-            print(torch.cuda.device(0), flush=True)
-            print(torch.cuda.device_count(), flush=True)
-            print(torch.cuda.get_device_name(0), flush=True)
-            print(torch.cuda.is_available(), flush=True)
+        # -------------------- choose device safely --------------------
+        if torch.cuda.is_available():
+            dev = torch.cuda.current_device()
+            device = torch.device("cuda")
+            if not cls.fQuiet:
+                print("Diagnostic info", flush=True)
+                print("CUDA available: True", flush=True)
+                print(f"device_count: {torch.cuda.device_count()}", flush=True)
+                print(f"current_device: {dev}", flush=True)
+                print(f"device_name: {torch.cuda.get_device_name(dev)}", flush=True)
+        else:
+            device = torch.device("cpu")
+            if not cls.fQuiet:
+                print("Diagnostic info", flush=True)
+                print("CUDA available: False", flush=True)
 
-        # setting device on GPU if available, else CPU
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if not cls.fQuiet:
             print('Using device:', device, flush=True)
             print(flush=True)
-
-            # Additional Info when using cuda
             if device.type == 'cuda':
                 print(torch.cuda.get_device_name(0), flush=True)
                 print('Memory Usage:', flush=True)
                 print('Allocated:', round(torch.cuda.memory_allocated(0) / 1024 ** 3, 1), 'GB', flush=True)
                 print('Cached:   ', round(torch.cuda.memory_reserved(0) / 1024 ** 3, 1), 'GB', flush=True)
-
             print("Finished", flush=True)
 
-        # need to add command line parameters here
-
+        # -------------------- construct runner --------------------
         return GoFAEDND(device, args)
+
+
+
+
+
 
     @classmethod
     def getParser(cls):

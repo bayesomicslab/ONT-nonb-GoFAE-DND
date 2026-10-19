@@ -12,8 +12,7 @@ from torch.utils.data import DataLoader
 from hypotests.CoreTests import SWF_weights
 from utilities.TestUtilities import check_test, testsetup
 from core.Manifolds import replacegrad, retract2manifold, sample_Stiefel
-from hypotests.CoreTests import CramerVonMises, KolmogorovSmirnov, \
-    ShapiroFrancia, ShapiroWilk, HenzeZirkler, MardiaSkew, Royston, EppsPulley1
+from hypotests.CoreTests import CramerVonMises, KolmogorovSmirnov, ShapiroFrancia, ShapiroWilk, HenzeZirkler, MardiaSkew, Royston, EppsPulley1
 from utilities.IOUtilities import savemodel, eprint
 from architecture.Encoders import Encoder_P1, Encoder_P2
 from architecture.Decoders import Decoder
@@ -22,14 +21,30 @@ from core.Losses import discriminative_loss
 from core.Dataset import import_data, reprocess_data2
 from torch.utils.data import TensorDataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from core.Evaluation import get_novelty_info, NoveltyStats, get_union, get_intersection, get_symdif, \
-    get_jaccard, get_idx, disc_ratio, compute_empirical , compute_true_sim_counts, compute_accuracy_metrics
+from core.Evaluation import get_novelty_info, NoveltyStats, get_union, get_intersection, get_symdif, get_jaccard, get_idx, disc_ratio, compute_empirical , compute_true_sim_counts, compute_accuracy_metrics
 from sklearn.covariance import MinCovDet
 from scipy import stats
 from core.Plotting import plot_test, plot_test_sim, plot_test_sim_split
 from statsmodels.stats.multitest import fdrcorrection
 from matplotlib import pyplot as plt
 from utils import load_data2
+
+
+# ---- helpers (safe logging across CPU/GPU & numpy/torch) ----
+def _scalar(x):
+    if isinstance(x, torch.Tensor):
+        x = x.detach()
+        if x.ndim == 0 or x.numel() == 1:
+            return x.item()
+        return x.mean().item()   # reduce vectors to a single number for logging
+    if isinstance(x, np.ndarray):
+        if x.size == 1:
+            return float(x.reshape(()))
+        return float(x.mean())
+    try:
+        return float(x)
+    except Exception:
+        return float(np.asarray(x).mean())
 
 
 class GoFAEDND():
@@ -515,11 +530,18 @@ class GoFAEDND():
                     hundbatch_end_time = time.time()
                     hundbatch_total_time = (hundbatch_end_time - hundbatch_start_time)
 
+                    # print(
+                    #     "Epoch: [%d/%d], Step: [%d/%d], Recon Loss: %.4f, BDNA Recon Loss: %.4f, NonB Recon Loss: %.4f, %s: %.4f, Pval: %.4f, Single Batch Time: %.4f, 100 Batch Time: %.4f" %
+                    #     (epoch + 1, self.epochs, step + 1, len(self.train_loader), recon_loss.data.item(),
+                    #      bdna_recon_loss.data.item(), nonb_recon_loss.data.item(),
+                    #      self.test.upper(), stat.data.item(), pval, onebatch_total_time, hundbatch_total_time), flush=True)
+
                     print(
-                        "Epoch: [%d/%d], Step: [%d/%d], Recon Loss: %.4f, BDNA Recon Loss: %.4f, NonB Recon Loss: %.4f, %s: %.4f, Pval: %.4f, Single Batch Time: %.4f, 100 Batch Time: %.4f" %
-                        (epoch + 1, self.epochs, step + 1, len(self.train_loader), recon_loss.data.item(),
-                         bdna_recon_loss.data.item(), nonb_recon_loss.data.item(),
-                         self.test.upper(), stat.data.item(), pval, onebatch_total_time, hundbatch_total_time), flush=True)
+                    "Epoch: [%d/%d], Step: [%d/%d], Recon Loss: %.4f, BDNA Recon Loss: %.4f, NonB Recon Loss: %.4f, %s: %.4f, Pval: %.4f, Single Batch Time: %.4f, 100 Batch Time: %.4f" %
+                    (epoch + 1, self.epochs, step + 1, len(self.train_loader), _scalar(recon_loss),
+                    _scalar(bdna_recon_loss), _scalar(nonb_recon_loss), self.test.upper(),
+                    _scalar(stat), _scalar(pval),_scalar(onebatch_total_time),_scalar(hundbatch_total_time)), flush=True)
+
 
                 step += 1
 
